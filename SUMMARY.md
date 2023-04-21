@@ -2,4 +2,4 @@
 
 * [Database-Systems](README.md)
   * [Introduction](Database-Systems/introduction.md)
-  * [Modeling](Database-Systems/introduction.md)
+  * [Modeling](Database-Systems/modeling.md)
