@@ -4,18 +4,14 @@
 
 An entity set is a collection of entities of the same type.
 
-![Screenshot 2023-03-05 at 7.00.34 PM.png](https://p.ipic.vip/1mhtty.png)
-
-![Screenshot 2023-03-05 at 7.35.51 PM.png](https://p.ipic.vip/jzw23u.jpg)
+<img src="https://p.ipic.vip/1mhtty.png" alt="Screenshot 2023-03-05 at 7.00.34 PM.png" style="zoom: 35%;" /><img src="https://p.ipic.vip/jzw23u.jpg" alt="Screenshot 2023-03-05 at 7.35.51 PM.png" style="zoom: 30%;" />
 
 The same entity set can participate in the following:
 
 - different relationship sets, or even
 - different “roles” in the same set
 
----
-
-![Screenshot 2023-03-05 at 7.40.03 PM.png](https://p.ipic.vip/0kjwc6.jpg)
+<img src="https://p.ipic.vip/0kjwc6.jpg" alt="Screenshot 2023-03-05 at 7.40.03 PM.png" style="zoom:50%;" />
 
 Take this pic as an example:
 
@@ -27,7 +23,7 @@ And the employees can have different roles: supervisor and subordinate
 
 “Many” is represented by a line.
 
-![Screenshot 2023-03-05 at 7.51.46 PM.png](https://p.ipic.vip/81gpvg.png)
+<img src="https://p.ipic.vip/81gpvg.png" alt="Screenshot 2023-03-05 at 7.51.46 PM.png" style="zoom:50%;" />
 
 This is a one-to-many scenario.
 
@@ -35,7 +31,7 @@ This is a one-to-many scenario.
 
 Participation constraint explores whether all entities of one entity set take part in a relationship. If yes this is a **total** participation, otherwise it is partial. Total participation says thta each entity takes part in “**at least one**” relationship, and is represented by a bold line.
 
-![Screenshot 2023-03-05 at 7.59.17 PM.png](https://p.ipic.vip/j923ci.jpg)
+<img src="https://p.ipic.vip/j923ci.jpg" alt="Screenshot 2023-03-05 at 7.59.17 PM.png" style="zoom:50%;" />
 
 The bold line is **total**.
 
@@ -49,15 +45,13 @@ Weak entity set must have total participation in this relationship set. Such rel
 
 Weak entities have only a “partial key”(dashed underline) and they are identified uniquely only when considering the primary key of the owner entity.
 
-![Screenshot 2023-03-05 at 8.18.07 PM.png](https://p.ipic.vip/06tyq0.png)
+<img src="https://p.ipic.vip/06tyq0.png" alt="Screenshot 2023-03-05 at 8.18.07 PM.png" style="zoom:50%;" />
 
 **Ternary Relationships(As opposed to Binary Relationships)**
 
 In general, we can have **n**-ary relationships, and relationships can have attributes.
 
-![Screenshot 2023-03-05 at 8.24.16 PM.png](https://p.ipic.vip/0i3dmv.jpg)
-
-![Screenshot 2023-03-05 at 8.26.52 PM.png](https://p.ipic.vip/aghcki.png)
+<img src="https://p.ipic.vip/0i3dmv.jpg" alt="Screenshot 2023-03-05 at 8.24.16 PM.png" style="zoom: 35%;" /><img src="https://p.ipic.vip/aghcki.png" alt="Screenshot 2023-03-05 at 8.26.52 PM.png" style="zoom:25%;" />
 
 They are not the same!!! 
 
@@ -69,17 +63,13 @@ Multi-valued attributes can have multiple (finite set of) values of the same typ
 
 Have a structure inside
 
-![Screenshot 2023-03-05 at 8.28.59 PM.png](https://p.ipic.vip/ypppfo.jpg)
+<img src="https://p.ipic.vip/ypppfo.jpg" alt="Screenshot 2023-03-05 at 8.28.59 PM.png" style="zoom:25%;" /><img src="https://p.ipic.vip/0rilse.jpg" alt="Screenshot 2023-03-05 at 8.30.30 PM.png" style="zoom:25%;" />
 
-![Screenshot 2023-03-05 at 8.30.30 PM.png](https://p.ipic.vip/0rilse.jpg)
+**Example**: Should “address” be an attribute of Employees or an entity (related to Employees)? 
 
----
-
-![Screenshot 2023-03-05 at 8.43.55 PM.png](https://p.ipic.vip/br4gyr.png)
+**Answer**: Depends upon how we want to use address information, and the semantics of the data: If we have several addresses per employee, address must be an entity
 
 ER design is subjective. There are often many ways to model a given scenario.
-
----
 
 Summary:
 
@@ -113,7 +103,7 @@ You can think of a relation as a set of rows or tuples. No order among rows.
 
 In logical design, we translate ER model to relational model. Entity set becomes a relation. Attributes become attributes of the relation.
 
-![Screenshot 2023-03-12 at 4.51.31 PM.png](https://p.ipic.vip/bkzb2o.png)
+<img src="https://p.ipic.vip/bkzb2o.png" alt="Screenshot 2023-03-12 at 4.51.31 PM.png" style="zoom:25%;" />
 
 ## Keys
 
@@ -228,15 +218,11 @@ Exam:
 
 Derived attributes imply that their values can be derived from some other attributes in the database. They do not need to be stored physically.
 
-![Screenshot 2023-03-14 at 11.52.17 AM.png](https://p.ipic.vip/dtg5qi.png)
-
-![Screenshot 2023-03-14 at 11.52.26 AM.png](https://p.ipic.vip/pbgwfo.jpg)
+<img src="https://p.ipic.vip/dtg5qi.png" alt="Screenshot 2023-03-14 at 11.52.17 AM.png" style="zoom:50%;" /><img src="https://p.ipic.vip/pbgwfo.jpg" alt="Screenshot 2023-03-14 at 11.52.26 AM.png" style="zoom:50%;" />
 
 Strong Entity and Weak Entity
 
-![Screenshot 2023-03-14 at 11.57.52 AM.png](https://p.ipic.vip/3snu0c.jpg)
-
-![Screenshot 2023-03-14 at 11.58.08 AM.png](https://p.ipic.vip/d6ifs6.jpg)
+<img src="https://p.ipic.vip/d6ifs6.jpg" alt="Screenshot 2023-03-14 at 11.58.08 AM.png" style="zoom:50%;" />
 
 Note that the strong entities are linked by dash lines.
 
@@ -263,9 +249,7 @@ To deal with multi-valued attributes:
 - flatten the attribute
 - use a look-up table one-many approach
 
-![Screenshot 2023-03-14 at 12.11.47 PM.png](https://p.ipic.vip/ijtjus.jpg)
-
-![Screenshot 2023-03-14 at 12.11.57 PM.png](https://p.ipic.vip/auikdf.jpg)
+<img src="https://p.ipic.vip/ijtjus.jpg" alt="Screenshot 2023-03-14 at 12.11.47 PM.png" style="zoom:50%;" /><img src="https://p.ipic.vip/auikdf.jpg" alt="Screenshot 2023-03-14 at 12.11.57 PM.png" style="zoom:50%;" />
 
 - many-to-many approach
 
@@ -341,7 +325,7 @@ CREATE TABLE Person(
 	ON UPDATE CASCADE);
 ```
 
-![Screenshot 2023-03-14 at 1.20.43 PM.png](https://p.ipic.vip/4pzb5j.png)
+<img src="https://p.ipic.vip/4pzb5j.png" alt="Screenshot 2023-03-14 at 1.20.43 PM.png" style="zoom:25%;" />
 
 ---
 
