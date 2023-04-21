@@ -5,3 +5,4 @@
   * [Modeling](Database-Systems/modeling.md)
   * [Relational Algebra and SQL](Database-Systems/relational_algebra_and_SQL.md)
   * [Files and Indices](Database-Systems/files_and_indices.md)
+  * [Query Processing](Database-Systems/query_processing.md)
