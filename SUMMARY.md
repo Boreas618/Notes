@@ -1,4 +1,5 @@
 # Table of contents
 
 * [Database-Systems](README.md)
-  * [introduction](Database-Systems/introduction.md)
+  * [Introduction](Database-Systems/introduction.md)
+  * [Modeling](Database-Systems/introduction.md)
