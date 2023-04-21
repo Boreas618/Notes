@@ -1,5 +1,3 @@
-# Operating Systems
-
 # INTRODUCTION
 
 **Evaluation Criteria of operating systems:**
