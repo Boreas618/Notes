@@ -1,10 +1,10 @@
 # Table of contents
 
-* [Database Systems](Database-Systems/README.md)
-  * [Introduction](Database-Systems/introduction.md)
-  * [Modeling](Database-Systems/modeling.md)
-  * [Relational Algebra and SQL](Database-Systems/relational\_algebra\_and\_SQL.md)
-  * [Files and Indices](Database-Systems/files\_and\_indices.md)
-  * [Query Processing](Database-Systems/query\_processing.md)
-* [Operating Systems](Operating-Systems/README.md)
-  * [Kernels and Processes](Operating-Systems/kernels-and-processes.md)
+* [Database Systems](database-systems/README.md)
+  * [Introduction](database-systems/introduction.md)
+  * [Modeling](database-systems/modeling.md)
+  * [Relational Algebra and SQL](database-systems/relational\_algebra\_and\_SQL.md)
+  * [Files and Indices](database-systems/files\_and\_indices.md)
+  * [Query Processing](database-systems/query\_processing.md)
+* [Operating Systems](operating-systems/README.md)
+  * [Kernels and Processes](operating-systems/kernels-and-processes.md)
