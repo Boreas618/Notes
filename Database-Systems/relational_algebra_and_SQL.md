@@ -1,10 +1,10 @@
 # Relational Algebra
 
-- Selection($\sigma$): selects a subset of rows from relation
-- Projection($\pi$): Retains only wanted colums from relation
-- Cross-product($\times$): Allows us to combine two relations
-- Set-difference($-$): Tuples in one relation, but not in the other
-- Union($\cup$): Tuples in one relation and/or in the other
+- Selection($$\sigma$$): selects a subset of rows from relation
+- Projection($$\pi$$): Retains only wanted colums from relation
+- Cross-product($$\times$$): Allows us to combine two relations
+- Set-difference($$-$$): Tuples in one relation, but not in the other
+- Union($$\cup$$): Tuples in one relation and/or in the other
 
 ## Projection
 
@@ -14,9 +14,9 @@ Also elimates the duplicate
 
 ## Selection
 
-$\sigma_{rating>8}(S)$
+$$\sigma_{rating>8}(S)$$
 
-Operations can be combined $\pi_{sname,rating}(\sigma_{rating>8}(S_2))$
+Operations can be combined $$\pi_{sname,rating}(\sigma_{rating>8}(S_2))$$
 
 ## Union and Set-difference
 
@@ -36,7 +36,7 @@ Cross product combines two relations:
 - Each row of one input is merged with each row from another input
 - Output is a new relation with all attributes of *both* inputs
 
-The renaming operator: $\rho(C(1\rightarrow sid1, 5\rightarrow sid2), S1\times S2)$
+The renaming operator: $$\rho(C(1\rightarrow sid1, 5\rightarrow sid2), S1\times S2)$$
 
 And Here is cross join:
 
@@ -46,13 +46,13 @@ SELECT * FROM Rel1, Rel2;
 
 Joins are compound operators involving cross product, selection and sometimes projection.
 
-Most common type: natural join $R\Join S$, a cross product that matches rows where attributes that appear in both relations have equal values( and we omit duplicate attributes). And there’s a projection in the final output which means duplicate attributes will be eliminated.
+Most common type: natural join $$R\Join S$$, a cross product that matches rows where attributes that appear in both relations have equal values( and we omit duplicate attributes). And there’s a projection in the final output which means duplicate attributes will be eliminated.
 
 **Condition Join(or theta-join)** is a cross product with a condition.
 
-$R\Join_C S= \sigma_C(R\times S)$
+$$R\Join_C S= \sigma_C(R\times S)$$
 
-**Equi-Join** is a special case of condition join where condition $C$ only contains equalities.
+**Equi-Join** is a special case of condition join where condition $$C$$ only contains equalities.
 
 Not same as natural join.
 
@@ -60,17 +60,17 @@ Not same as natural join.
 
 Notes:
 
-- Write Department $\Join$ Sale $\Join$ Item instead of Department $\Join$ Item $\Join$ Sale. The Department and Item do not share the same attributes.
+- Write Department $$\Join$$ Sale $$\Join$$ Item instead of Department $$\Join$$ Item $$\Join$$ Sale. The Department and Item do not share the same attributes.
 
 - Find the employees whose salary is less than half that of their managers.
 
-  $\rho(Employee\rightarrow TeamMember)$
+  $$\rho(Employee\rightarrow TeamMember)$$
 
-  $\rho(Employee\rightarrow Boss)$
+  $$\rho(Employee\rightarrow Boss)$$
 
-  $TeamMember \Join_{TeamMember. BossID = Boss.EmployeeID}Boss$
+  $$TeamMember \Join_{TeamMember. BossID = Boss.EmployeeID}Boss$$
 
-  $\sigma_{TeamMember.Salary<0.5\times Boss.Salary}(TeamMember \Join_{TeamMember. BossID = Boss.EmployeeID}Boss)$
+  $$\sigma_{TeamMember.Salary<0.5\times Boss.Salary}(TeamMember \Join_{TeamMember. BossID = Boss.EmployeeID}Boss)$$
 
 # SQL
 
