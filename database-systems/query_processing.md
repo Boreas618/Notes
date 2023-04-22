@@ -1,4 +1,6 @@
-# Query Processing Overview
+# Query Processing
+
+## Query Processing Overview
 
 Main weapons are:
 
@@ -6,11 +8,11 @@ Main weapons are:
 2. exploiting ‘quivalencies’ of relational operators
 3. using cost models to choose among alternatives
 
-### Workflow
+#### Workflow
 
-<img src="https://p.ipic.vip/d5o8xl.jpg" alt="Screenshot 2023-04-17 at 5.26.23 PM.png" style="zoom:50%;" />
+![Screenshot 2023-04-17 at 5.26.23 PM.png](https://p.ipic.vip/d5o8xl.jpg)
 
-# Selections
+## Selections
 
 **Schema for Examples**
 
@@ -26,7 +28,7 @@ Each tuple is 50 tuples long, 80 tuples per page, 500 pages
 
 Each tuple is 40 bytes long, 100 tuples per page, 1000 pages
 
-## Simple Selections
+### Simple Selections
 
 The best way to preform a selection depends on:
 
@@ -43,68 +45,64 @@ $$size\_of\_relation \times \prod(reduction\_factors)$$
 
 This is estimated by the optimizer.
 
-### Alternatives for Simple Selections
+#### Alternatives for Simple Selections
 
-1. With no index, unsorted:
+1.  With no index, unsorted:
 
-   Must scan the whole relation, i.e. perform Heap Scan
+    Must scan the whole relation, i.e. perform Heap Scan
 
-   **Cost =** $$[R]$$
+    **Cost =** $$[R]$$
+2.  With no index, but file is sorted:
 
-2. With no index, but file is sorted:
+    **Cost =** binary search cost + $$[R_{condition}]$$
 
-   **Cost =** binary search cost + $$[R_{condition}]$$
+    **Cost =** $$\log_2([R]) + (RF\times [R])$$
+3.  With an index on selection attribute:
 
-   **Cost =** $$\log_2([R]) + (RF\times [R])$$
+    Use index to find qualifying data entries, then retrieve corresponding data records
 
-3. With an index on selection attribute:
+    Cost depends on the number of qualifying tuples
 
-   Use index to find qualifying data entries, then retrieve corresponding data records
+    Clustering is important when calculating the total cost
 
-   Cost depends on the number of qualifying tuples
-   
-   Clustering is important when calculating the total cost
-   
-   1. Clustered index **Cost =** $$([I]+[R])\times RF$$
-   2. Unclustered index **Cost =** $$([I]+|R|))\times RF$$
+    1. Clustered index **Cost =** $$([I]+[R])\times RF$$
+    2. Unclustered index **Cost =** $$([I]+|R|))\times RF$$
 
 ![Untitled](https://p.ipic.vip/k3hbnh.jpg)
 
-## General Selection Conditions
+### General Selection Conditions
 
 Typically queires have multiple predicates (conditions)
 
 Example: `day<8/9/94 AND rname='Paul' AND bid=5 AND sid=3`
 
-A B+ tree index matches (a combination of) predicates that involve only attributes in a  **prefix of the search key (upon which we build the index).**
+A B+ tree index matches (a combination of) predicates that involve only attributes in a **prefix of the search key (upon which we build the index).**
 
 Index on `<a, b, c>` matches predicates on `(a, b, c)` `(a, b)` `(a)`
 
 This implies that only reduction factors of the **matching predicates(or primary conjuncts)** that are part of the prefix will be used to determine the index cost.
 
-## Selection Approach
+### Selection Approach
 
-1. Find the cheapest access path 
+1.  Find the cheapest access path
 
-   An index or file scan with the **least estimated page I/O** 
+    An index or file scan with the **least estimated page I/O**
+2.  Retrieve tuples using it
 
-2. Retrieve tuples using it 
+    Predicates that match this index reduce the number of tuples retrieved (and impact the cost)
+3.  Apply the predicates that don't match the index (if any) later on
 
-   Predicates that match this index reduce the number of tuples retrieved (and impact the cost) 
+    These predicates are used to discard some retrieved tuples, but do not affect number of tuples/pages fetched (nor the total cost)
 
-3. Apply the predicates that don't match the index (if any) later on 
-
-   These predicates are used to discard some retrieved tuples, but do not affect number of tuples/pages fetched (nor the total cost) 
-
-   In this case selection over other predicates is said to be done “on-the-fly”
+    In this case selection over other predicates is said to be done “on-the-fly”
 
 **Example: `day < 8/9/24 AND bid = 5 AND sid = 3`**
 
 A **B+ tree** index **on day** can be used: $$RF = RF(day)$$ . Then `bid=5` and `sid=3` must be checked for each retrieved tuple on the fly
 
-Similarly,  a **hash index on <bid, sid>** could be used $$\prod RF=RF(bid)\times RF(sid)$$. Then, `day<8/9/94` must be checked on the fly.
+Similarly, a **hash index on \<bid, sid>** could be used $$\prod RF=RF(bid)\times RF(sid)$$. Then, `day<8/9/94` must be checked on the fly.
 
-# Projections
+## Projections
 
 Issue with projection is removing duplicates
 
@@ -115,7 +113,7 @@ FROM Reserves R;
 
 Projection can be done based on **hashing** or **sorting.** By sorting, the duplicates are adjacent to each other. Bu hashing, the duplicates fall on the same bucket.
 
-## Sorting
+### Sorting
 
 Basic approach is to use **sorting**
 
@@ -123,9 +121,9 @@ Basic approach is to use **sorting**
 2. Sort the result set(typically using external merge sort)
 3. Remove adjacent duplicates
 
-Usually, we bring data from disk to memory to sort it. But what if the data is too large to fit in memory? 
+Usually, we bring data from disk to memory to sort it. But what if the data is too large to fit in memory?
 
-### A Simple Two-way Merge Sort
+#### A Simple Two-way Merge Sort
 
 When sorting a file, several sorted subfiles are typically generated in intermediate steps. Each sorted file is called a **run**.
 
@@ -149,12 +147,12 @@ In each pass, we read every page in the file, process it, and write it out. We h
 
 Only three buffer pages in the memory is needed (Two inputs and oen output). In order to merge 2 **sorted runs,** we only need two buffer pages. We compare the records respectively. Once one page of one sorted run is run out, we can load a new page. Therefore, to merge 2 sorted runs, only 2 buffer pages are needed. Beyond 2 buffer pages, 1 output page is needed.
 
-### External Merge Sort
+#### External Merge Sort
 
 Two optimizations as opposed to Two-way merge sort:
 
-- In the initial “conquer pass”, we load B pages and sort them at a time.
-- Merge more than 2 pages at a time. Because we need a output buffer page, we can merge $$B-1$$ pages at a time.
+* In the initial “conquer pass”, we load B pages and sort them at a time.
+* Merge more than 2 pages at a time. Because we need a output buffer page, we can merge $$B-1$$ pages at a time.
 
 The number of I/Os needed is $$2N\times(1+\lceil \log _{B-1}^{\frac{N}{B}}\rceil)$$.
 
@@ -162,10 +160,10 @@ Sort runs: Make each B pages sorted (called runs)
 
 Merge runs: Make multiple passes to merge runs
 
-- Pass 2: Produce runs of length $$B(B-1)$$ pages
-- Pass 3: Produce runs of length $$B(B-1)^2$$ pages
-- …
-- Pass P: Produce runs of length $$B(B-1)^P$$ pages
+* Pass 2: Produce runs of length $$B(B-1)$$ pages
+* Pass 3: Produce runs of length $$B(B-1)^2$$ pages
+* …
+* Pass P: Produce runs of length $$B(B-1)^P$$ pages
 
 ![Screenshot 2023-04-18 at 7.56.32 PM.png](https://p.ipic.vip/98kp15.jpg)
 
@@ -179,61 +177,53 @@ Projection with **external sort:**
 
 **WriteProjectedPages** = $$[R] \times PF$$
 
-**PF: Projection Factor** says how much are we projecting, ratio with respect to all attributes ( e.g. keeping $$\frac{1}{4}$$  of attributes, or $$10\%$$ of all attributes )
+**PF: Projection Factor** says how much are we projecting, ratio with respect to all attributes ( e.g. keeping $$\frac{1}{4}$$ of attributes, or $$10\%$$ of all attributes )
 
-**Sorting Cost = $$2\times$$ NumPasses$$\times$$ReadProjectedPages**
+**Sorting Cost =** $$2\times$$ **NumPasses**$$\times$$**ReadProjectedPages**
 
-## Hashing
+### Hashing
 
 1. Scan $$R$$, extract only the needed attributes
+2.  Hash data into buckets
 
-2. Hash data into buckets
+    Apply hash function $$h_1$$ to choose one of $$B-1$$ output buffers
+3.  Remove adjacent duplicates from a bucket
 
-   Apply hash function $$h_1$$ to choose one of $$B-1$$ output buffers
+    2 tuples from different partitions guaranteed to be distinct
 
-3. Remove adjacent duplicates from a bucket
+![Screenshot 2023-04-18 at 8.17.46 PM.png](https://p.ipic.vip/quha8m.jpg)
 
-   2 tuples from different partitions guaranteed to be distinct
-
-<img src="https://p.ipic.vip/quha8m.jpg" alt="Screenshot 2023-04-18 at 8.17.46 PM.png" style="zoom:50%;" />
-
-### Projection based on External Hashing
+#### Projection based on External Hashing
 
 **Partition** data into $$B-1$$ partitions with $$h_1$$ hash function
 
 Load each partition, hash it with another hash function($$h_2$$) and eliminate duplicates
 
-<img src="https://p.ipic.vip/nip3w9.png" alt="Screenshot 2023-04-18 at 8.21.46 PM.png" style="zoom:50%;" />
+![Screenshot 2023-04-18 at 8.21.46 PM.png](https://p.ipic.vip/nip3w9.png)
 
 1. Partitioning phase
+   * Read $$R$$ using one input buffer
+   *   For each tuple:
 
-   - Read $$R$$ using one input buffer
+       Discard unwanted fields
 
-   - For each tuple:
+       Apply hash function $$h_1$$ to choose one of $$B-1$$ output buffers
+   *   Result is $$B-1$$ partitions (of tuples with no unwanted fields)
 
-     Discard unwanted fields
-
-     Apply hash function $$h_1$$ to choose one of $$B-1$$ output buffers
-
-   - Result is $$B-1$$ partitions (of tuples with no unwanted fields)
-
-     2 tuples from different partitions guaranteed to be distinct
-
+       2 tuples from different partitions guaranteed to be distinct
 2. Duplicate elimination phase
+   *   For each partition
 
-   - For each partition
+       Read it and build an in-memory hash table -
 
-     Read it and build an in-memory hash table -
+       Using hash function $$h_2$$ on all fields
 
-     Using hash function $$h_2$$ on all fields 
+       While discarding duplicates
+   *   If partition does not fit in memory
 
-     While discarding duplicates
+       Apply hash-based projection algorithm recursively to this partition
 
-   - If partition does not fit in memory
-
-     Apply hash-based projection algorithm recursively to this partition
-
-# Joins
+## Joins
 
 To find matches between two lists of records, it is important to sort them first. Otherwise, the process can be fairly inefficient.
 
@@ -249,15 +239,15 @@ ID            ID
 
 Join techniques we will cover:
 
-- Nested-loops join
-- Sorted-merge join
-- Hash join
+* Nested-loops join
+* Sorted-merge join
+* Hash join
 
 Cross product is very expensive. $$R \times S$$ followed by a selection is inefficient.
 
 Consider two inputs of tables:
 
-The left input is called the **outer input** and right input **is called the **inner inpu**t.
+The left input is called the **outer input** and right input \*\*is called the **inner inpu**t.
 
 ![Screenshot 2023-04-21 at 6.54.56 AM.png](https://p.ipic.vip/k1wgav.png)
 
@@ -265,7 +255,7 @@ Have nothing to do with inner/ outer joins!
 
 **Join is associative and communicative**
 
-## Simple Nested Loops Join
+### Simple Nested Loops Join
 
 For each tuple in the outer relation R, we scan the entire inner relation S.
 
@@ -279,23 +269,23 @@ foreach tuple in R do
 
 **Cost** = $$[Outer]+|Outer|\times [Inner]$$
 
-## Page-Oriented Nested Loops Join
+### Page-Oriented Nested Loops Join
 
 For each **page** of R, get **each page** of S. Write out matching pairs of tuples $$<r,s>$$, where $$r$$ is in R page and S is in S-page.
 
 Pseudo code:
 
 ```pseudocode
-for each page bR in R do
-	for each page bS in S do
-		for each tuple r in bR do
-			for each tuple in bS do
+foreach page bR in R do
+	foreach page bS in S do
+		foreach tuple r in bR do
+			foreach tuple in bS do
 				if ri == sj then add<r, s> to result
 ```
 
 **Cost** = $$[Outer]+[Outer]\times [Inner]$$
 
-## Block Nested Loops Join
+### Block Nested Loops Join
 
 Page-oriented NL doesn’t exploit extra memory buffers
 
@@ -309,21 +299,21 @@ For each matching tuple $$r$$ in R-block, $$s$$ in S-page, add $$<r,s>$$ to resu
 
 $$\tiny{NBlocks(Outer)=\lceil\frac{[Outer]}{B-2}\rceil}$$
 
-## Index Nested Loop Join
+### Index Nested Loop Join
 
-```pseudocode
+```peoplecode
 foreach record ri in R:
 	foreach record sj in S where condi(ri,sj) == true:
 		yield <ri, sj>
 ```
 
-**Cost** =  $$[R]+|R|\times(cost\,to\,look\,up\,matching\,records\,in\,S)$$
+**Cost** = $$[R]+|R|\times(cost\,to\,look\,up\,matching\,records\,in\,S)$$
 
-## Sort-Merge Join
+### Sort-Merge Join
 
 It's cumbersom to handle the identical keys in $$R$$ and $$S$$.
 
-```pseudocode
+```
 function sort_merge_join():
 	sort(R)
 	sort(S)
@@ -348,19 +338,19 @@ function sort_merge_join():
 
 **Average cost =** $$Sort(R)+Sort(S)+[R]+[S]$$
 
-**Worst case cost = ** $$Sort(R)+Sort(S)+|R|\times[S]$$
+\*\*Worst case cost = \*\* $$Sort(R)+Sort(S)+|R|\times[S]$$
 
 $$Sort(R)=2\times \#Passes\times [R]$$
 
-## Hash join
+### Hash join
 
 **Requires** equality predicate.
 
-### Naive Hash Join
+#### Naive Hash Join
 
 construct a hash table with a size of $$B-2$$ pages for $$R$$. Look up records of $$S$$ in the hash table. The cost is $$[R]+[S]$$. The problem is that $$R$$ needs to be fit in the memory.
 
-### Grace Hash Join
+#### Grace Hash Join
 
 Two phases:
 
@@ -377,9 +367,9 @@ In **Build and Probe** phase, we read both relations.
 
 **Cost =** $$3\times [R]+3\times [S]$$
 
-### Code Example for Grace Hash Join
+#### Code Example for Grace Hash Join
 
-```c++
+```cpp
 #include <functional>
 #include <unordered_map>
 #include <vector>
@@ -446,7 +436,7 @@ Table grace_hash_join(const Table& table1, const Table& table2) {
 
 ```
 
-## General Join Conditions
+### General Join Conditions
 
 Equalities over serveral attributes
 
