@@ -7,8 +7,8 @@ CSPs are a type of identification problem, problems in which we must simply iden
 
 CSPs are deﬁned by three factors:
 
-1. **Variables** - CSPs possess a set of $$N$$ variables $X_1 ,...,X_N$ that can each take on a single value from some deﬁned set of values.
-2. **Domain** - A set $\{ x_1 ,...,x_d \}$ representing all possible values that a CSP variable can take on.
+1. **Variables** - CSPs possess a set of $$N$$ variables $$X_1 ,...,X_N$$ that can each take on a single value from some deﬁned set of values.
+2. **Domain** - A set $$\{ x_1 ,...,x_d \}$$ representing all possible values that a CSP variable can take on.
 3. **Constraints** - Constraints deﬁne restrictions on the values of variables, potentially with regard to other variables.
 
 NP-hard There exists no known algorithm for finding solutions to them in polynomial time.
@@ -38,11 +38,11 @@ Three ideas to improve backtracking:
 
 A naive method of filtering is **forward checking**.
 
-Whenever a value is assigned to a variable $X_i$, prunes the domains of unassigned variables that share a constraint with $X_i$ that would violate the constraint if assigned.
+Whenever a value is assigned to a variable $$X_i$$, prunes the domains of unassigned variables that share a constraint with $$X_i$$ that would violate the constraint if assigned.
 
 The idea of forward checking can be generalized into the principle of **arc consistency**.
 
-An arc $X\rightarrow Y$ is consistent if for every $x$ in the tail there is some $y$ in the head which could be assigned without violating a constraint.
+An arc $$X\rightarrow Y$$ is consistent if for every $$x$$ in the tail there is some $$y$$ in the head which could be assigned without violating a constraint.
 
 Key point: delete from the tail
 
@@ -54,16 +54,16 @@ Arc consistency check detects failure earlier than forward checking.
 
 Arc consistency check can be run as a preprocessor or after each assignment.
 
-- Begin by storing all arcs in the constraint graph for the CSP in a queue $Q$.
-- Iteratively remove arcs from $Q$ and enforce the condition that in each removed arc  $X_i\rightarrow X_j$ , for every remaining value $v$ for the tail variable $X_i$ , there is at least one remaining value $w$ for the head variable $X_j$ such that $X_i = v$, $X_j = w$ does not violate any constraints. If some value $v$ for $X_i$ would not work with any of the remaining values for $X_j$ , we remove $v$ from the set of possible values for $X_i$ .
-- If at least one value is removed for $X_i$ when enforcing arc consistency for an arc  $X_i\rightarrow X_j$ , add arcs of the form  $X_k\rightarrow X_i$ to $Q$, for all unassigned variables $X_k$ . If an arc  $X_k\rightarrow X_i$ is already in $Q$ during this step, it doesn’t need to be added again.
-- Continue until $Q$ is empty, or the domain of some variable is empty and triggers a backtrack.
+- Begin by storing all arcs in the constraint graph for the CSP in a queue $$Q$$.
+- Iteratively remove arcs from $$Q$$ and enforce the condition that in each removed arc  $$X_i\rightarrow X_j$$ , for every remaining value $$v$$ for the tail variable $$X_i$$ , there is at least one remaining value $$w$$ for the head variable $$X_j$$ such that $$X_i = v$$, $$X_j = w$$ does not violate any constraints. If some value $$v$$ for $$X_i$$ would not work with any of the remaining values for $$X_j$$ , we remove $$v$$ from the set of possible values for $$X_i$$ .
+- If at least one value is removed for $$X_i$$ when enforcing arc consistency for an arc  $$X_i\rightarrow X_j$$ , add arcs of the form  $$X_k\rightarrow X_i$$ to $$Q$$, for all unassigned variables $$X_k$$ . If an arc  $$X_k\rightarrow X_i$$ is already in $$Q$$ during this step, it doesn’t need to be added again.
+- Continue until $$Q$$ is empty, or the domain of some variable is empty and triggers a backtrack.
 
 Arc consistency is typically implemented with the AC-3 algorithm:
 
 ![Untitled](https://p.ipic.vip/hlslll.jpg)
 
-A worst case of time complexity: $O(ed^3)$ where $e$ is the number of arcs and $d$ is the size of the largest domain. 
+A worst case of time complexity: $$O(ed^3)$$ where $$e$$ is the number of arcs and $$d$$ is the size of the largest domain. 
 
 Fewer backtracks and assignment, more computation.
 
@@ -73,9 +73,9 @@ Our consistency is about **pair** here.
 
 **2-Consistency:** for each pair of nodes, any consistent assignment to one can be extended to the other.
 
-**K-Consistency:** for any set of k nodes in the CSP, a consistent assignment to any subset of $k − 1$ nodes guarantees that the $k$ th node will have at least one consistent value.
+**K-Consistency:** for any set of k nodes in the CSP, a consistent assignment to any subset of $$k − 1$$ nodes guarantees that the $$k$$ th node will have at least one consistent value.
 
-**Strong K-consistency:** A graph that is strong k-consistent possesses the property that any subset of k nodes is not only k-consistent but also $k − 1,k − 2,...,1$ consistent as well.
+**Strong K-consistency:** A graph that is strong k-consistent possesses the property that any subset of k nodes is not only k-consistent but also $$k − 1,k − 2,...,1$$ consistent as well.
 
 Strong n-consistency means we can solve without backtracking.
 
@@ -96,7 +96,7 @@ Combing the principles can make some relative big problems feasible.
 
 Extreme case: independent subproblems
 
-For a tree-structured CSP, we can reduce the runtime for finding a solution from $O(d^{N})$ all the way to $O(nd^2)$
+For a tree-structured CSP, we can reduce the runtime for finding a solution from $$O(d^{N})$$ all the way to $$O(nd^2)$$
 
 ![Untitled](https://p.ipic.vip/wx0m31.jpg)
 
@@ -111,7 +111,7 @@ The tree structured algorithm can be extended to CSPs that are reasonably close 
 
 ![Untitled](https://p.ipic.vip/6njv7z.jpg)
 
-THe runtime of cutset conditioning on a general CSP is $O(d^c (n-c)d^2)$
+THe runtime of cutset conditioning on a general CSP is $$O(d^c (n-c)d^2)$$
 
 ## Local Search
 
