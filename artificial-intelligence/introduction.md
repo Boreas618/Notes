@@ -1,9 +1,5 @@
 # Introduction
 
-# INTRODUCTION TO AI
-
-## Agents
-
 **Agent:** an entity that has goals or preferences and tries to perform a series of actions that yeild the best/optimal expected outcome given these goals.
 
 **Percept sequence:** the complete history of content the agent has perceived.
