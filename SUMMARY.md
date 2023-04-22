@@ -1,6 +1,6 @@
 # Table of contents
 
-* [Database Systems](README.md)
+* [Database Systems](database-systems/README.md)
   * [Introduction](database-systems/introduction.md)
   * [Modeling](database-systems/modeling.md)
   * [Relational Algebra and SQL](database-systems/relational\_algebra\_and\_SQL.md)
