@@ -67,27 +67,25 @@ After resetting the timer, the operating system will resume execution of the pro
 
 Three reasons for transferring from user-mode to kernel-mode:
 
-- Exceptions
-
-can be used to set breakpoints
+- **Exceptions** can be used to set breakpoints
 
 - Interrupts
 
-**Hardware Interrupt**
+  **Hardware Interrupt**
 
-timer events/ the completion of I/O requests
+  timer events/ the completion of I/O requests
 
-An alternative to interrupts: polling. The kernel loop and check if an event has occured and is needed to be handled
+  An alternative to interrupts: polling. The kernel loop and check if an event has occured and is needed to be handled
 
-Interprocessor interrupts: coorindate actions across the multiprocessor
+  **Interprocessor interrupts**: coorindate actions across the multiprocessor
 
 - System calls
 
-**Software Interrupt**
+  **Software Interrupt**
 
-Most processors implement system calls using a special trap instruction.
+  Most processors implement system calls using a special trap instruction.
 
-Applications trap only to a pre-defined address
+  Applications trap only to a pre-defined address
 
 ### Safe mode switch
 
@@ -95,11 +93,11 @@ A common sequence for entering the kernel and returning from the kernel
 
 - Limited entry points
 
-The user program cannot jump arbitrarily.
+  The user program cannot jump arbitrarily.
 
 - Automic changes to processor state
 
-mode, program counter, stack and memory protection all changed at the same time.
+  mode, program counter, stack and memory protection all changed at the same time.
 
 - Transparent, restartable execution
 
@@ -125,8 +123,6 @@ Procedure of returning from the interrupt, exception or trap:
 - pop the registers stored by the handler
 - hardware restore the registers it saved into the interrupt stack
 
----
-
 Modern operating system allocates a kernel interrupt stack for every user-level process and user-level thread.
 
 **Interrupt masking**
@@ -146,8 +142,6 @@ When a context switch occurs the x86 hardware:
 Once the handler starts running, it can use the `pushad` instruction to save the remaining registers onto the stack.
 
 `pushad`saves the x86 integer registers; because the kernel does not typically do ﬂoating point operations, those do not need to be saved unless the kernel switches to a new process.
-
----
 
 `popad`pop an array of integer register values off the stack into the registers
 
@@ -203,8 +197,6 @@ The syscall function takes care of marshalling the arguments passed by the user 
 
 ********X86******** The system call calling convention is arbitrary, so here we pass arguments on the user stack, with a code indicating the type of system call in the register `%eax`. The return value comes back in `%eax` so there is no work to do on the return.
 
----
-
 The kernel stub has four tasks:
 
 - **Locate system call arguments:** the arguments are stored on the process’s user stack. We should convert the virtual addresses of the arguments to physical addresses.
@@ -233,8 +225,6 @@ Each process deﬁnes its own handlers for each signal type, much as the kernel 
 Applications have the option to run UNIX signal handlers either on the process’s normal execution stack or on a special signal stack allocated by the user process in user memory. Running signal handlers on the normal stack can reduce the ﬂexibility of the signal handler in manipulating the stack, e.g., to cause a language-level exception to be raised.
 
 A UNIX signal handler automatically masks further delivery of that type of signal until the handler returns. The program can mask other signals, either all together or individually, as needed.
-
----
 
 **Handling signals in user-level program**
 
