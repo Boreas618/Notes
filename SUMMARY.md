@@ -11,3 +11,4 @@
   * [Kernels and Processes](operating-systems/kernels-and-processes.md)
 * [Artificial Intelligence](artificial-intelligence/README.md)
   * [Introduction](artificial-intelligence/introduction.md)
+  * [Constraint Satisfaction Problems](artificial-intelligence/constraint-satisfaction-problems.md)
