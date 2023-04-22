@@ -1,4 +1,4 @@
-# THE KERNEL ABSTRACTION
+# Kernels and Processes
 
 A central role of operating system: protection
 
@@ -16,9 +16,9 @@ In kernel-mode, there’s no verification.
 
 Hardware needed to do the protection:
 
-- Privileged instructions
-- Memory Protection
-- Timer interrupts
+* Privileged instructions
+* Memory Protection
+* Timer interrupts
 
 ### Privileged instructions
 
@@ -50,10 +50,10 @@ Only needed to check against base and bounds in user-mode
 
 Unable to provide:
 
-- Expandable heap and stack
-- Memory sharing
-- Non-relative memory address
-- Memory fragmentation
+* Expandable heap and stack
+* Memory sharing
+* Non-relative memory address
+* Memory fragmentation
 
 Modern solution: virtual address
 
@@ -67,45 +67,41 @@ After resetting the timer, the operating system will resume execution of the pro
 
 Three reasons for transferring from user-mode to kernel-mode:
 
-- **Exceptions** can be used to set breakpoints
+* **Exceptions** can be used to set breakpoints
+*   Interrupts
 
-- Interrupts
+    **Hardware Interrupt**
 
-  **Hardware Interrupt**
+    timer events/ the completion of I/O requests
 
-  timer events/ the completion of I/O requests
+    An alternative to interrupts: polling. The kernel loop and check if an event has occured and is needed to be handled
 
-  An alternative to interrupts: polling. The kernel loop and check if an event has occured and is needed to be handled
+    **Interprocessor interrupts**: coorindate actions across the multiprocessor
+*   System calls
 
-  **Interprocessor interrupts**: coorindate actions across the multiprocessor
+    **Software Interrupt**
 
-- System calls
+    Most processors implement system calls using a special trap instruction.
 
-  **Software Interrupt**
-
-  Most processors implement system calls using a special trap instruction.
-
-  Applications trap only to a pre-defined address
+    Applications trap only to a pre-defined address
 
 ### Safe mode switch
 
 A common sequence for entering the kernel and returning from the kernel
 
-- Limited entry points
+*   Limited entry points
 
-  The user program cannot jump arbitrarily.
+    The user program cannot jump arbitrarily.
+*   Automic changes to processor state
 
-- Automic changes to processor state
-
-  mode, program counter, stack and memory protection all changed at the same time.
-
-- Transparent, restartable execution
+    mode, program counter, stack and memory protection all changed at the same time.
+* Transparent, restartable execution
 
 **Interrupt vector**
 
 A special register pointing to an area of kernel memory called the interrupt vector. The interrupt vector is an array of pointers, with each pointer pointing to the first instruction of a handler procedure.
 
-x86: 0-31 hardware exceptions    32-255 interrupts     entry 64 points to the system call trap handler
+x86: 0-31 hardware exceptions    32-255 interrupts     entry 64 points to the system call trap handler
 
 **Interrupt stack**
 
@@ -113,15 +109,15 @@ A privileged hardware register pointing to a region of kernel memory called the 
 
 Procedure:
 
-- Save some of the interrupted process’s registers onto the interrupt stack(done by hardware)
-- call the kernel handler
-- Save the remaining registers(done by the handler)
-- do the handler work
+* Save some of the interrupted process’s registers onto the interrupt stack(done by hardware)
+* call the kernel handler
+* Save the remaining registers(done by the handler)
+* do the handler work
 
 Procedure of returning from the interrupt, exception or trap:
 
-- pop the registers stored by the handler
-- hardware restore the registers it saved into the interrupt stack
+* pop the registers stored by the handler
+* hardware restore the registers it saved into the interrupt stack
 
 Modern operating system allocates a kernel interrupt stack for every user-level process and user-level thread.
 
@@ -135,9 +131,9 @@ The hardware provides a privileged instruction to temporarily defer delivery of 
 
 When a context switch occurs the x86 hardware:
 
-- If in user-mode, pushes the interrupted process’s stack pointer onto the kernel’s exception stack, and switches to the kernel stack.
-- Pushes the interrupted process’s instruction pointer
-- Pushes the x86 *processor status word*.
+* If in user-mode, pushes the interrupted process’s stack pointer onto the kernel’s exception stack, and switches to the kernel stack.
+* Pushes the interrupted process’s instruction pointer
+* Pushes the x86 _processor status word_.
 
 Once the handler starts running, it can use the `pushad` instruction to save the remaining registers onto the stack.
 
@@ -149,7 +145,7 @@ Once the handler starts running, it can use the `pushad` instruction to save the
 
 **Putting it all together: Mode switch on the x86**
 
-The x86 is segmented. Pointers come in 2 parts: a segment, such as code, data or stack, and an offset within that segment. 
+The x86 is segmented. Pointers come in 2 parts: a segment, such as code, data or stack, and an offset within that segment.
 
 The current user-level instruction is based on a combination of the code segment(`cs` register plus the instruction pointer `eip`)
 
@@ -165,7 +161,7 @@ In the interrupt handler process,
 
 `pushad` pushes the rest of the registers, **including the current stack pointer**, onto the stack. x86 `pushad` pushes the contents of all general purpose registers onto the stack.
 
-At this point the kernel’s exception stack holds 
+At this point the kernel’s exception stack holds
 
 1. the stack pointer, execution ﬂags, and program counter saved by the hardware
 2. an error code or dummy value
@@ -195,14 +191,14 @@ A pair of stubs are two short procedures that mediate between two environments, 
 
 The syscall function takes care of marshalling the arguments passed by the user program into a format that can be understood by the system call handler, and handles any necessary validation of the arguments.
 
-********X86******** The system call calling convention is arbitrary, so here we pass arguments on the user stack, with a code indicating the type of system call in the register `%eax`. The return value comes back in `%eax` so there is no work to do on the return.
+**X86** The system call calling convention is arbitrary, so here we pass arguments on the user stack, with a code indicating the type of system call in the register `%eax`. The return value comes back in `%eax` so there is no work to do on the return.
 
 The kernel stub has four tasks:
 
-- **Locate system call arguments:** the arguments are stored on the process’s user stack. We should convert the virtual addresses of the arguments to physical addresses.
-- **Validate parameters**: you cannot trust the processes.
-- **Copy before check:** the kernel copies system call parameters into kernel memory before performing the necessary checks.
-- **Copy back any results**
+* **Locate system call arguments:** the arguments are stored on the process’s user stack. We should convert the virtual addresses of the arguments to physical addresses.
+* **Validate parameters**: you cannot trust the processes.
+* **Copy before check:** the kernel copies system call parameters into kernel memory before performing the necessary checks.
+* **Copy back any results**
 
 In turn, the system call handler pops any saved registers (except %eax) and uses the iret instruction to return back to the user stub immediately after the trap, allowing the user stub to return to the user program.
 
@@ -228,7 +224,7 @@ A UNIX signal handler automatically masks further delivery of that type of signa
 
 **Handling signals in user-level program**
 
-When the timer interrupt occurs, the hardware generates an interrupt request(IRQ) signal to the processor, which causes the processor to switch from user mode to kernel mode. 
+When the timer interrupt occurs, the hardware generates an interrupt request(IRQ) signal to the processor, which causes the processor to switch from user mode to kernel mode.
 
 The kernel interrupt handler saves the current state of the user-level computation onto the kernel stack.
 
@@ -253,4 +249,3 @@ The BIOS reads bootloader from flash RAM or disk.
 **host operating system**
 
 **guest operating system**
-
