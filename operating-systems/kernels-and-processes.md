@@ -6,7 +6,7 @@ A central role of operating system: protection
 
 The operating system keeps track of the various processes on the computer using a data structure called the **process control block.** The process control block stores all the information the operating system needs about a particular process: where it is stored in memory, where its executable image is on disk, which user asked it to start executing, what privileges the process has, and so forth.
 
-**Each thread of a multi-thread program have its own stack and PC.** They do share the data and code from the process.
+**Each thread of a multi-thread program have its own stack and PC.** They do **share the data** and code from the process. Because they share the data, race conditions may happen from time to time. Mutex is used for thread synchronization. It ensures that only one thread has access to a critical section or data by using operations like a lock and unlock. A thread having the lock of mutex can use the critical section while other threads must wait till the lock is released. (This will be covered later) 
 
 ## Dual-mode operation
 
@@ -24,7 +24,7 @@ Hardware needed to do the protection:
 
 Process isolation is only possible if there is a way to **limit programs running in user-mode from directly changing their privilege level.**
 
-Other than trapping into the system kernel at the system call locations, an application process cannot be allowed to change its privilege level.
+Other than trapping into the system kernel at the system call locations, an application process **cannot be allowed to change its privilege level**.
 
 **cannot be allowed to change the set of memory locations it can access**
 
@@ -36,7 +36,7 @@ When a process attempts to access the memory it is not allowed to access, except
 
 Usually, the operating system kernel simply halts the process on privilege violations, as it often means that the application’s code has encountered a bug.
 
-**Memory protection**
+### Memory protection
 
 Early computers: base and bounds
 
@@ -57,7 +57,7 @@ Unable to provide:
 
 Modern solution: virtual address
 
-**Timer interrupts**
+### Timer interrupts
 
 A hardware timer: interrupt the processor after a certain delay.
 
@@ -67,8 +67,8 @@ After resetting the timer, the operating system will resume execution of the pro
 
 Three reasons for transferring from user-mode to kernel-mode:
 
-* **Exceptions** can be used to set breakpoints
-*   Interrupts
+* **Exceptions catched** can be used to set breakpoints
+*   **Interrupts arrived**
 
     **Hardware Interrupt**
 
@@ -78,8 +78,6 @@ Three reasons for transferring from user-mode to kernel-mode:
 
     **Interprocessor interrupts**: coorindate actions across the multiprocessor
 *   System calls
-
-    **Software Interrupt**
 
     Most processors implement system calls using a special trap instruction.
 
@@ -249,3 +247,31 @@ The BIOS reads bootloader from flash RAM or disk.
 **host operating system**
 
 **guest operating system**
+
+# The Programming Interface
+
+A **microkernel** isolates privileged but less critical parts of operaing systems to such as the file system and window system, from the rest of the kernel.
+
+The functions are ecapsulated into user-level processes or servers and access from user programs via interprocess communication.
+
+However, transferring control to a user-level file system server via the kernel is even more costly than transferring control into the kernel. 
+
+## Process Management
+
+A shell is a job control system.
+
+### Windows Process Management
+
+Add a system call to create a process. In Windows, there is a routine called `CreateProcess`. The steps that are needed to take are:
+
+* Create and initialize the process control block (PCB) in the kernel
+* Create and initialize a new address space
+* Load the program `prog` into the address space
+* Copy arguments `args` into memory in the address space
+* Initialize the hardware context to start execution at “start”
+* Inform the scheduler that the new process is ready to run
+
+### UNIX Process Management
+
+UNIX splits `CreateProcess` in two steps, called `fork` and `exec`.
+
