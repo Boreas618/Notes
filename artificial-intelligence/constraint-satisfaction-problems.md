@@ -1,8 +1,5 @@
 # Constraint Satisfaction Problems
 
-- Planning problems
-- Constraint satisfaction problems
-
 CSPs are a type of identification problem, problems in which we must simply identify whether a state is goal state or not, **with no regard to how we arrive at that goal.**
 
 CSPs are deﬁned by three factors:
@@ -16,10 +13,23 @@ NP-hard There exists no known algorithm for finding solutions to them in polynom
 Usually represented as constraint graphs.
 
 - Unary constraints
-- Binary constraints
+- Binary constraints: each constraint relates at most two variables
 - Higher-order constraints
+- Preferences (soft constraints)
+
+## Applying Standard Search
+
+**Initial state**: the empty assignment
+
+**Successor function**: assign a value to an unassigned variable that does not conflict with current assignment. 一 fail if no legal assignments (not fixable!) 
+
+**Goal test**: the current assignment is complete
+
+$$b=(n-l)\times d$$ at depth $$l$$, hence $$n!d^n$$ leaves.
 
 # Solving Constraint Satisfaction Problems
+
+Depth-first search for CSPs with single-variable assignments is called **backtracking** search.
 
 Backtracking search: 
 
@@ -83,8 +93,9 @@ Strong n-consistency means we can solve without backtracking.
 
 Principle: 
 
-- Minimum Remaining Values(MRV): When selecting which variable to assign next, using an MRV policy chooses whichever unassigned variable has the fewest valid remaining values (the most constrained variable).
-- Least Constraining Value (LCV): When selecting which value to assign next, a good policy to implement is to select the value that prunes the fewest values from the domains of the remaining unassigned values.
+- **Minimum Remaining Values(MRV)**: When selecting which variable to assign next, using an MRV policy chooses whichever unassigned variable has the fewest valid remaining values (the most constrained variable).
+- **Degree Heuristic**: choose the variable with the most constraints on remaining variables.
+- **Least Constraining Value (LCV)**: When selecting which value to assign next, a good policy to implement is to select the value that prunes the fewest values from the domains of the remaining unassigned values.
 
 In terms of choosing variable, we take the most constrained variable.
 
@@ -98,7 +109,7 @@ Extreme case: independent subproblems
 
 For a tree-structured CSP, we can reduce the runtime for finding a solution from $$O(d^{N})$$ all the way to $$O(nd^2)$$
 
-![Untitled](https://p.ipic.vip/wx0m31.jpg)
+<img src="https://p.ipic.vip/wx0m31.jpg" alt="Untitled" style="zoom:50%;" />
 
 Tree-structured CSP algorithm:
 
@@ -120,5 +131,3 @@ Local search works by iterative improvement - starting with some random assignme
 Local search appears to run in almost constant time and have a high probability of success not only for N-queens with arbitrarily large N, but also for any randomly generated CSP.
 
 But incomplete and suboptimal. Sometimes expensive.
-
-# 
