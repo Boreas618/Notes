@@ -7,6 +7,7 @@
   * [Relational Algebra and SQL](database-systems/relational\_algebra\_and\_SQL.md)
   * [Files and Indices](database-systems/files\_and\_indices.md)
   * [Query Processing](database-systems/query\_processing.md)
+  * [Query Optimization](database-systems/query-optimization.md)
 * [Operating Systems](operating-systems/README.md)
   * [Introduction](operating-systems/introduction.md)
   * [Kernels and Processes](operating-systems/kernels-and-processes.md)
