@@ -1,5 +1,6 @@
 # Table of contents
 
+* [README](README.md)
 * [Database Systems](database-systems/README.md)
   * [Introduction](database-systems/introduction.md)
   * [Modeling](database-systems/modeling.md)
@@ -12,3 +13,5 @@
 * [Artificial Intelligence](artificial-intelligence/README.md)
   * [Introduction](artificial-intelligence/introduction.md)
   * [Constraint Satisfaction Problems](artificial-intelligence/constraint-satisfaction-problems.md)
+* [Computer Networking](computer-networking/README.md)
+  * [Computer Networks and the Internet](computer-networking/computer-networks-and-the-internet.md)
