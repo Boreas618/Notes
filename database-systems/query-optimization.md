@@ -92,7 +92,7 @@ For each available access path (file scan/ index) is considered, and the one wit
 
 1. Sequential scan of data file: **Cost=[R]**
 
-2. Index selection over a primary key (just a single tuple): 
+2. Index selection over a **primary key** (just a single tuple): 
 
    **Cost(B+ Tree) = Height(I)+1**
 

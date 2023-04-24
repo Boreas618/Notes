@@ -338,7 +338,7 @@ function sort_merge_join():
 
 **Average cost =** $$Sort(R)+Sort(S)+[R]+[S]$$
 
-\*\*Worst case cost = \*\* $$Sort(R)+Sort(S)+|R|\times[S]$$
+**Worst case cost =** $$Sort(R)+Sort(S)+|R|\times[S]$$
 
 $$Sort(R)=2\times \#Passes\times [R]$$
 
