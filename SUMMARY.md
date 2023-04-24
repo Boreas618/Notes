@@ -17,3 +17,4 @@
 * [Computer Networking](computer-networking/README.md)
   * [Computer Networks and the Internet](computer-networking/computer-networks-and-the-internet.md)
   * [The Network Edge](computer-networking/the-network-edge.md)
+* [Rust](rust.md)
