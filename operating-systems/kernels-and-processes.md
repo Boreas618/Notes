@@ -275,3 +275,67 @@ Add a system call to create a process. In Windows, there is a routine called `Cr
 
 UNIX splits `CreateProcess` in two steps, called `fork` and `exec`.
 
+`fork()` gets a copy of the program. The copy can then do whatever is necessary to set up the context of the child. Once the context is set, the copy then calls UNIX `exec` to copy in the new program and start running it.
+
+```c
+pid = fork();
+if(pid == 0)
+	exec(...);
+else
+	wait(pid);
+```
+
+The steps for implementing UNIX `fork` are:
+
+* Create and initialize the PCB in the kernel
+* Create a new address space
+* Initialize teh address space with a copy of the entire contents of the address space of the parent
+* Inherit the execution context of the parent
+* Inform the scheduler that the new process is ready to run
+
+The steps for implementing UNIX `exec` are:
+
+* Load the program `prog` into the current address space
+* Copy arguments `args` into memory in the address space
+* Initialize the hardware context to start execution at "start"
+
+UNIX has a system call `wait(pid)`. The parent process waits the child process to finish, crash or terminate.
+
+> Waiting for a thread to complete is called "thread join"
+>
+> In Windows, however, there is a single function called "WaitForSingleObject" that wait for process completion, thread completion, or on a condition variable.
+
+UNIX also provides a system call to send another process an instant notification, or upcall. It is sent by calling `signal`.
+
+## Input/output
+
+All device I/O, file operations and interprocess communication use the same set of system calls: open, close, read and write.
+
+`open` wil return a handle to be used in the later calls to read, write and close to identify the file, device or channel. This is called "file descriptor".
+
+Stream data such as from the network or keyboard is stored in a kernel buffer and returned to the application on request. If no data is available to be returned immediately, the `read` call blocks until it arrives.
+
+The outgoing data is stored in a kernel buffer for transmission when the device becomes available. If the application generates data faster than the device can receive it (as is common when spooling data to a printer), the write system call blocks in the kernel until there is enough room to store the new data in the buﬀer.
+
+Explicitly call the close will decrement the reference-count on the device, and garbage collect any unused kernel data structures.
+
+For interprocess communication:
+
+* Pipes
+
+  A UNIX pipe is a kernel buﬀer with two ﬁle descriptors, one for writing and one for reading.
+
+  Data is read exactly the same order sequence it is written. The pipe terminates when either endpoint closes the pipe or exits.
+
+  While pipe connects two processes on the same machine, TCP provides a bi-directional pipe between two processes running on different machines.
+
+* Replace file descriptor
+
+  `dup(from, to)` replaces the `to` file descriptor with a copy of the `from` file descriptor.
+
+* Wait for multiple reads
+
+  The UNIX system call select(fd[], number) addresses this. Select allows the server to wait for input from any of a set of ﬁle descriptors; it returns the ﬁle descriptor that has data, but it does not read the data.
+
+  Windows has an equivalent function, called `WaitForMultipleObjects`.
+
