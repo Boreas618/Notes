@@ -348,3 +348,149 @@ fn dangle() -> &String { // dangle returns a reference to a String
 ```
 
 The solution here is to return the `String` directly.
+
+## The Slice Type
+
+To get the length of the first word in a `String`:
+
+```rust
+fn first_word(s: &String) -> usize {
+    let bytes = s.as_bytes();
+  
+  	// we get a reference to the element in .enumerate()
+  	// as a result, we need to use &item to destructure the tuple
+    for (i, &item) in bytes.iter().enumerate() {
+        if item == b' ' {
+            return i;
+        }
+    }
+
+    s.len()
+}
+```
+
+However, the returned value is not in sync with the `String` itself. If the `String` is `clear`ed, the value has no meaning.
+
+### String Slices
+
+```rust
+let s = String::from("hello world");
+
+let hello = &s[0..5];
+let world = &s[6..11];
+```
+
+<img src="https://p.ipic.vip/j0lah0.png" alt="Screenshot 2023-04-25 at 11.23.13 AM" style="zoom:25%;" />
+
+We can rewrite the `first_word`:
+
+```rust
+fn first_word(s: &String) -> &str {
+    let bytes = s.as_bytes();
+
+    for (i, &item) in bytes.iter().enumerate() {
+        if item == b' ' {
+            return &s[0..i];
+        }
+    }
+
+    &s[..]
+}
+```
+
+Thus, the `word` is sync witn `s`. If `s` is `clear`ed, there's an error with `word`.
+
+```rust
+fn main() {
+    let mut s = String::from("hello world");
+
+    let word = first_word(&s);
+
+    s.clear(); // error!
+  	// Because clear needs to truncate the String, it needs to get a mutable reference. Hence, there are both mutable reference and immutable reference
+
+    println!("the first word is: {}", word);
+}
+```
+
+### String Literals as Slices
+
+```rust
+let s = "Hello, world";
+```
+
+The type of `s` here is `&str`: it’s a slice pointing to that specific point of the binary. This is also why string literals are immutable; `&str` is an immutable reference.
+
+In Rust, string literals are of type `&str`, which stands for "string slice". A string slice is a reference to a sequence of UTF-8 encoded bytes in memory, which represents a string. 
+
+We can create `String` from `&str`:
+
+```rust
+let my_string: &str = "Hello, world!";
+```
+
+## Structs
+
+```rust
+struct User {
+    active: bool,
+    username: String,
+    email: String,
+    sign_in_count: u64,
+}
+
+fn main() {
+    let user1 = User {
+        active: true,
+        username: String::from("someusername123"),
+        email: String::from("someone@example.com"),
+        sign_in_count: 1,
+    };
+}
+```
+
+Note that the entire instance must be mutable; Rust doesn’t allow us to mark only certain fields as mutable. As with any expression, we can construct a new instance of the struct as the last expression in the function body to implicitly return that new instance.
+
+The `email` and `sign_in_count` is of type `String`. We want each instance of the struct owns all of its data. If we use a `&str`, the variables are not owned by the struct instance.
+
+```rust
+fn build_user(email: String, username: String) -> User {
+  User {
+    active: true
+    username,
+    email,
+    sign_in_count: 1,
+  }
+}
+```
+
+It uses  *field init shorthand* syntax.
+
+```rust
+fn main() {
+    // --snip--
+
+    let user2 = User {
+        email: String::from("another@example.com"),
+        ..user1
+    };
+}
+```
+
+This is struct update syntax. The `..user1` must come last to specify that any remaining fields should get their values from the corresponding fields in `user1`, but we can choose to specify values for as many fields as we want in any order, regardless of the order of the fields in the struct’s definition.
+
+Note that this is a **move**. We can no longer use `user1` as a whole as a whole after creating `user2`.
+
+In this example, we can no longer use `user1` as a whole after creating `user2` because the `String` in the `username` field of `user1` was moved into `user2`. If we had given `user2` new `String` values for both `email` and `username`, and thus only used the `active` and `sign_in_count` values from `user1`, then `user1` would still be valid after creating `user2`. Both `active` and `sign_in_count` are types that implement the `Copy` trait, so the behavior we discussed in the [“Stack-Only Data: Copy”](https://doc.rust-lang.org/stable/book/ch04-01-what-is-ownership.html#stack-only-data-copy) section would apply.
+
+### Tuple Structs
+
+```rust
+struct Color(i32, i32, i32);
+struct Point(i32, i32, i32);
+
+fn main() {
+    let black = Color(0, 0, 0);
+    let origin = Point(0, 0, 0);
+}
+```
