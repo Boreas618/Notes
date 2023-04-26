@@ -22,3 +22,4 @@
 * [Rust](rust.md)
 * [Introduction to Computer System](introduction-to-computer-system/README.md)
   * [Exception Control Flow](introduction-to-computer-system/exception-control-flow.md)
+* [Probability and Bayes Nets](probability-and-bayes-nets.md)
