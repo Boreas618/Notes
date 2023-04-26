@@ -339,3 +339,81 @@ For interprocess communication:
 
   Windows has an equivalent function, called `WaitForMultipleObjects`.
 
+## Case Study: Implementing a Shell
+
+```c
+int main() {
+  char *prog = NULL;
+  char **args = NULL;
+  
+  while(readAndParseCmdLine(&prog, &args)) {
+    int child_pid = fork();
+    if (child_pid == 0) {
+      exec(prog, args);
+    } else {
+      wait(child_pid);
+      return 0;
+    }
+  } 
+}
+```
+
+My question: why do we mention pipe here?
+
+A **producer-consumer** relationship: the output of the preprocessor is sent to to the parser.
+
+## Case Study: Interprocess Communication
+
+Three widely used forms of interprocess communication:
+
+* Producer-consumer
+* Client server: two way communication between processes, as in client-server computing.
+* File system: can be separated in time
+
+### Producer-consumer communication
+
+![image-20230426160834164](https://p.ipic.vip/lyaunf.png)
+
+As one process computes and produces a stream of output data, it issues a sequence of **write** system calls **on the pipe into the kernel**. Each write can be of variable size. Assuming there is room in the **kernel buﬀer**, the kernel copies the data into the buﬀer, and returns immediately back to the producer.
+
+The consumer issues a sequence of **read** calls. The consumer can read the data out in any convenient chunking.
+
+If the kernel buffer is full, the kernel stalls the producer process until there is room to store the data.
+
+If the kernel buffer is empty, the kernel stalls the consumer process until there the producer produces more data.
+
+Eventually, the consumer reads the last of the data, and the read system call will return an “end of ﬁle” marker. Thus, to the consumer, there is no diﬀerence between reading from a pipe and reading from a ﬁle.
+
+Decoupling the execution of the producer and consumer through the use of kernel buﬀers reduces the number and cost of context switches. This means that the producer and consumer runs concurrently. If not, the producer needs to be defered and picked up frequently . A lot of context switches is costly.
+
+Modern computers make extensive use of hardware caches to improve performance, but caches are ineﬀective if a program only runs for a short period of time before it must yield the processor to another task. Hence, it is not feasible to do a lot of context swithes. The kernel buﬀer allows the operating system to run each process long enough to beneﬁt from reuse, rather than alternating between the producer and consumer on each system call.
+
+### Client-server Communication
+
+There are two pipes, one for each direction.
+
+A server can be connected to a couple of clients. For this, the server uses the select system call, to identify the pipe containing the request to be read.
+
+```c
+char request[RequestSize];
+char replt[ReplySize];
+FileDescriptor clientInput[NumClients];
+FileDescriptor clientOutput[NumClients];
+
+while(fd = select(clientInput, NumClients)) {
+  read(clientInput[fd], request, RequestSize);
+  write(clientOutput[fd], reply, ReplySize);
+}
+```
+
+## Operating System Structure
+
+Almost all modern operating systems have both a hardware abstraction layer and dynamically loaded device drivers.
+
+The hardware abstraction layer (HAL) is a portable interface to machine-speciﬁc operations within the kernel.
+
+A dynamically loadable device driver is software to manage a speciﬁc loadable device driver device or interface or chipset, that is added to the operating system kernel after the kernel starts running, to handle the devices that are present on a particular machine.
+
+Some device drivers may crash or even corrupt the kernel. Therefore, we can run them inside driver sandbox ot a guest operating system running on a virtual machine.
+
+In practice, most systems adopt a hybrid model where some operating system services are run at user-level and some are in the kernel, depending on the speciﬁc tradeoﬀ between code complexity and performance.
