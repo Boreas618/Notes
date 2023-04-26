@@ -20,3 +20,5 @@
   * [Computer Networks and the Internet](computer-networking/computer-networks-and-the-internet.md)
   * [Application Layer](computer-networking/the-network-edge.md)
 * [Rust](rust.md)
+* [Introduction to Computer System](introduction-to-computer-system/README.md)
+  * [Exception Control Flow](introduction-to-computer-system/exception-control-flow.md)
