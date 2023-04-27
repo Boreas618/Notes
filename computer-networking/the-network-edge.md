@@ -84,3 +84,134 @@ Internet telephony applications usually prefer to run their applications over UD
 
 RFC vs Proprietary application protocols
 
+## The Web and HTTP
+
+The World Wide Web is an Internet application.
+
+### Overview of HTTP
+
+HTTP(Hyper Text Transfer Protocol) is the Web's application-layer protocol. It is implemented in two programs: a client program and a server program. The client and server exchange HTTP messages.
+
+A Web page consists of objects. A HTML file references the other objects in the page with the object's URLs.
+
+HTTP uses TCP as its underlying transport protocol.
+
+The HTTP client first initiates a TCP connection with the server. Once the connection is established, the browser and the server processes access TCP through their socket interfaces.
+
+Because an HTTP server maintains no information about the clients, HTTP is said to be a **stateless protocol**.
+
+### Non-Persistent and Persistent Connections
+
+Although HTTP uses persistent connections in its default mode, HTTP clients and servers can be configured to use non-persistent connections instead.
+
+**Non-Persistant Connections**
+
+**Example:**
+
+```
+http://www.someSchool.edu/someDepartment/home.index
+```
+
+1. The HTTP client process initiates a TCP connection to the server on port number 80.
+2. The HTTP client sends an HTTP request message to the server via its socket. The request message includes the path name `/someDepartment/home.index`. 
+3. The HTTP server process receives the request message via its socket, encapsulates the object in an HTTP response message, and sends the response message to the client via its socket.
+4. The HTTP server process tells TCP to close the TCP connection.
+5. The HTTP client receives the response message. The TCP connection terminates. 
+6. The first four steps are then repeated for each of the referenced JPEG objects.
+
+11 TCP connections are generated.
+
+In their default modes, most browsers open 5 to 10 parallel TCP connections, and each of these connections handles one request-response transaction.
+
+A three-way handshake: the client sends a small TCP segment to the server, the server acknowledges and responds with a small TCP segment, and, finally, the client acknowledges back to the server.
+
+**Persistent Connections**
+
+Subsequent requests and responses between the same client and server can be sent over the same connection.
+
+Multiple Web pages residing on the same server can be sent from the server to the same client over a single persistent TCP connection. 
+
+Typically, the HTTP server closes a connection when it isn’t used for a certain time (a configurable timeout interval)
+
+### HTTP Message Format
+
+```http
+GET /somedir/page.html HTTP/1.1
+Host: www.someschool.edu
+Connection: close
+User-agent: Mozilla/5.0
+Accept-language: fr
+
+```
+
+Request line and header lines
+
+`Connection: close` means non-persistent connection.
+
+<img src="https://p.ipic.vip/95tmpc.png" alt="Screenshot 2023-04-27 at 1.39.06 PM" style="zoom:50%;" />
+
+`HEAD` leaves out the requested object. For debugging.
+
+`PUT` upload something to the server.
+
+```http
+HTTP/1.1 200 OK
+Connection: close
+Date: Tue, 18 Aug 2015 15:44:04 GMT
+Server: Apache/2.2.3 (CentOS)
+Last-Modified: Tue, 18 Aug 2015 15:11:03 GMT
+Content-Length: 6821
+Content-Type: text/html
+
+(data data data data data ...)
+```
+
+Status line and header lines
+
+The `Date:` header line indicates the time and date when the HTTP response was created and sent by the server. 
+
+<img src="https://p.ipic.vip/xqorkn.png" alt="Screenshot 2023-04-27 at 1.44.40 PM" style="zoom:50%;" />
+
+### User-Server Interaction: Cookies
+
+HTTP is stateless. We can use cookies to keep track of users.
+
+Cookie technology has four components: 
+
+* a cookie header line in the HTTP response message
+* a cookie header line in the HTTP request message
+* a cookie file kept on the user’s end system and managed by the user’s browser
+* a back-end database at the Web site.
+
+**Example:** in the response message:
+
+```http
+Set-cookie: 1678
+```
+
+Then the messages sent by the client has the header line:
+
+```http
+Cookie: 1678
+```
+
+Cookies can thus be used to create a user session layer on top of stateless HTTP.
+
+### Web Caching
+
+A **Web cache**—also called a **proxy server**—is a network entity that satisfies HTTP requests on the behalf of an origin Web server. The Web cache has its own disk storage and keeps copies of recently requested objects in this storage.
+
+<img src="https://p.ipic.vip/nithz4.png" alt="Screenshot 2023-04-27 at 2.10.38 PM" style="zoom:50%;" />
+
+A cache is both a server and a client at the same time。
+
+Typically a Web cache is purchased and installed by an ISP.
+
+Through the use of **Content Distribution Networks (CDNs)**, Web caches are increasingly playing an important role in the Internet. 
+
+There are shared CDNs (such as Akamai and Limelight) and dedicated CDNs (such as Google and Netflix).
+
+**Conditional GET**
+
+* uses `GET` method
+* the request message includes an `If-Modified-Since:` header line
