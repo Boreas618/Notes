@@ -456,6 +456,43 @@ Guidelines:
 
   Or because it cannot be interrupted by a signal handler.
 
+  **Example 1: Not reentrant**
+
+  Here's the signal handler:
+
+  ```c
+  volatile sig_atomic_t count = 0;
+  
+  void handler(int signum) {
+      ++count;
+      printf("Signal caught %d time(s)\n", count);
+  }
+  ```
+
+  If 2 signals arrive at nearly the same time, two handlers may run concurrently. We increment the count to 1. Before we can printf the count, the count is incremented by another handler to 2. Here is the race condition. To solve this:
+
+  ```c
+  volatile sig_atomic_t count = 0;
+  pthread_mutex_t count_mutex = PTHREAD_MUTEX_INITIALIZER;
+  
+  void handler(int signum) {
+      pthread_mutex_lock(&count_mutex);
+      ++count;
+      printf("Signal caught %d time(s)\n", count);
+      pthread_mutex_unlock(&count_mutex);
+  }
+  ```
+
+  **Example 2: Can be interrupted**
+
+  ```c
+  void allocate_memory() {
+      char* buffer = malloc(1024);
+      // do something with buffer
+      free(buffer);
+  }
+  ```
+
   The ONLY safe way to generate output from a signal handler is to use the `write` function. Calling `printf` or `sprintf` is unsafe.
 
   ![Untitled](https://p.ipic.vip/th5z4d.png)
@@ -579,6 +616,8 @@ handler_t *Signal(int signum, handler_t *handler){
 }
 ```
 
+Once the signal handler is installed, it remains installed until Signal is called with a handler argument of either `SIG_IGN` or `SIG_DFL`.
+
 ### Synchronizing Flows to Avoid Nasty Concurrency Bugs
 
 ```c
@@ -625,3 +664,140 @@ Chances are that a race condition may happen:
 After the `fork` function the newly created child is instantly scheduled. The child terminates and call `deletejob`. But the job haven't been added!
 
 By blocking `SIGCHLD` signals before the call to fork and then unblocking them only after we have called `addjob`, we guarantee that the child will be reaped *after* it is added to the job list. Notice that children inherit the blocked set of their parents, so we must be careful to unblock the `SIGCHLD` signal in the child before calling `execve`.
+
+### Explicitly Waiting for Signals
+
+Sometimes we need to exlicitly wait for a certain signal handler to run. Like the Linux shell wait for the foreground job to terminate and be reaped by the SIGCHLD handler before accepting the next user command.
+
+**Solution 1:**
+
+After creating the child, it resets pid to zero, unblocks SIGCHLD, and then waits in a spin loop for pid to become nonzero. After the child terminates, the handler reaps it and assigns its nonzero PID to the global pid variable. This terminates the spin loop, and the parent continues with additional work before starting the next iteration.
+
+Cost: the spin loop is wasteful of processor resources
+
+**Solution 2:**
+
+```c
+while(!pid)
+  pause();
+```
+
+This aims to solve the problem of spin loop by simply pausing the main routine. A loop is still needed though because the `pause` may be interrupted by `SIGINT` signals. We use `pause` to wait for the `SIGCHLD` signal. If `SIGCHLD` is caught, then the main routine will resume. There's a race condition. If the `SIGCHLD` is received between the condition test and `pause`. Then the main routine wil pause forever.
+
+**Solution 3**:
+
+```c
+while(!pid)
+  Sleep(1);
+```
+
+It won't pause forvever. But it is costly to sleep for 1 second. Also, it's not likely that you find a fesible length of session of sleep.
+
+The proper solution is to use `sigsuspend`.
+
+The `sigsuspend` function temporarily replaces the current blocked set with mask and then suspends the process until the receipt of a signal whose action is either to run a handler or to terminate the process. If the action is to terminate, then the process terminates without returning from sigsuspend. If the action is to run a handler, then sigsuspend returns after the handler returns, restoring the blocked set to its state when `sigsuspend` was called.
+
+Here a example implementation of shell using `sigsuspend`:
+
+```c
+#include "csapp.h"
+
+volatile sig_atomic_t pid;
+
+void sigchld_handler(int s) {
+  int olderrno = errno;
+  pid = Waitpid(-1, NULL, 0);
+  errno = olderrno;
+}
+
+void sigint_handler(int s) {
+  
+}
+
+int main(int argc, char **argv) {
+  sigset_t mask, prev;
+  
+  Signal(SIGCHLD, sigchld_handler);
+  Signal(SIGINT, sigint_handler);
+  Sigemptyset(&mask);
+  Sigaddset(&mask, SIGCHLD);
+  
+  while(1) {
+    Sigprocmask(SIG_BLOCK, &mask, &prev);
+    if(Fork() == 0)
+      exit(0);
+    
+    pid = 0;
+    while(!pid)
+      sigsuspend(&prev);
+    
+    Sigprocmask(SIG_SETMASK, &prev, NULL);
+    
+    printf(".");
+  }
+  
+}
+```
+
+If `SIGCHLD` is handled, then the loop will break.
+
+If `SIGINT` is handled, then the loop will resume.
+
+## Nonlocal Jumps
+
+```c
+#include <setjump.h>
+
+int setjmp(jmp_buf env);
+int sigsetjmp(sigjmp_buf env, int savesigs);
+
+// returns o from setjump, nonzero from longjmps
+
+
+void longjmp(jmp_buf env, int retval);
+void siglongjmp(sigjmp_buf env, int retval);
+
+//never returns
+```
+
+The `setjmp` function saves the current *calling environment* in the env buffer, for later use by longjmp, and returns 0. The calling environment includes the program counter, stack pointer, and general-purpose registers.
+
+The `longjmp` function restores the calling environment from the env buffer and then triggers a return from the most recent `setjmp` call that initialized `env`. The `setjmp` then returns with the nonzero return value retval.
+
+An important application of nonlocal jumps is to permit an immediate return from a deeply nested function call, usually as a result of detecting some error condition.
+
+The `longjump` call to jump from the nested function calls can skip some deallocation of dynamcially allocated memory, thus causing memory leak.
+
+The `sigsetjmp` and `siglongjmp` functions are versions of setjmp and longjmp that can be used by signal handlers.
+
+Another important application of nonlocal jumps is to branch out of a signal handler to a specific code location, rather than returning to the instruction that was interrupted by the arrival of the signal.
+
+**Example: A soft restart**
+
+```c
+#include "csapp.h"
+
+sigjmp_buf buf;
+
+void handler(int sig) {
+  siglongjmp(buf, 1);
+}
+
+int main() {
+  if(!sigsetjmp(buf, 1)) {
+    Signal(SIGINT, handler);
+    Sio_puts("starting\n");
+  } else
+    Sio_puts("restarting\n");
+  
+  while(1) {
+    Sleep(1);
+    Sio_puts("processing...\n");
+  }
+  exit(0);
+}
+```
+
+To avoid a race, we must install the handler *after* we call `sigsetjmp`. If not, we would run the risk of the handler running before the initial call to `sigsetjmp` sets up the calling environment for `siglongjmp`. 
+
+The `sigsetjmp` and `siglongjmp` functions are not on the list of async-signal-safe functions. The reason is that in general `siglongjmp` can jump into arbitrary code, so we must be careful to call only safe functions in any code reachable from a `siglongjmp`. In our example, we call the safe `sio_puts` and `sleep` functions. The unsafe `exit` function is unreachable.
