@@ -10,23 +10,23 @@ Applications request services from the operating system by using a form of ECF k
 
 An **exception** is an abrupt change in the control flow in response to some change in the processor’s state.
 
-Processor’s state: encoded in various bits and signals inside the processor. The change in state is known as an *event*.
+Processor’s state: encoded in various bits and signals inside the processor. The change in state is known as an _event_.
 
 Change of processor’s state: event
 
 In the case, when the processor detects that the event has occured, it makes an indirect procedure call(the exception), through a jump table called an **exception** **table**, to an operating system subroutine(the **exception hanlder**) that is specially designed to process this particular kind of event. When the exception handler finishes processing, one of three things happens, depending on the type of event that caused the exception:
 
-- returns to $I_{curr}$
-- returns to $I_{next}$
-- Aborts the interrupted program
+* returns to $I\_{curr}$
+* returns to $I\_{next}$
+* Aborts the interrupted program
 
 ### Exception Handling
 
-Exceptions denoted with *exception number*s. Assigned by processor or kernel.
+Exceptions denoted with _exception number_s. Assigned by processor or kernel.
 
 At system boot time, the operating system allocates and initializes a jump table called an exception table.
 
-The exception number is an index into the exception table, whose starting address is contained in a special CPU register called the *exception table base register.*
+The exception number is an index into the exception table, whose starting address is contained in a special CPU register called the _exception table base register._
 
 When control is being transfered from a user program to the kernel, all of these items are pushed onto the kernel’s stack rather than onto the user’s stack.
 
@@ -34,10 +34,10 @@ After the handler has processed the event, it optionally returns to the interrup
 
 ### Classes of Exceptions
 
-- Interrupts
-- traps
-- faults
-- aborts
+* Interrupts
+* traps
+* faults
+* aborts
 
 ![Untitled](https://p.ipic.vip/8bkqob.jpg)
 
@@ -83,8 +83,8 @@ Run program in shell: create a process and run the executable object file in thi
 
 Key abstractions of concept **process:**
 
-- An independent control flow that provides the illusion that our program has exclusive use of the processor.
-- A private address space that provides the illusion that our program has exclusive use of the memory system.
+* An independent control flow that provides the illusion that our program has exclusive use of the processor.
+* A private address space that provides the illusion that our program has exclusive use of the memory system.
 
 Serveral processors: execute → preempted→another execute
 
@@ -102,13 +102,13 @@ If two flows are running concurrently on different processor cores or computers,
 
 A mode bit in some control register characterize the privilleges that the process currently enjoys. **kernel mode**
 
-`/proc` file system: allow user mode processes access the concepts of kernel data structures. 
+`/proc` file system: allow user mode processes access the concepts of kernel data structures.
 
 `/proc/cpuinfo`
 
 ### Context Switches
 
-Preempt the current process and restart a previously preempted process. 
+Preempt the current process and restart a previously preempted process.
 
 Scheduling handled by scheduler.
 
@@ -116,7 +116,7 @@ A context switch can occur while the kernel is executing a system call on behalf
 
 ## System Call Error Handling
 
-Unix system-level functions encounter an error, they typically return $-1$ and set the global integer variable `errno` to indicate what went wrong. 
+Unix system-level functions encounter an error, they typically return $-1$ and set the global integer variable `errno` to indicate what went wrong.
 
 Example for error checking:
 
@@ -151,21 +151,19 @@ pid_t Fork(void){
 
 A process in three states:
 
-- Running
+* Running
+*   Stopped
 
-- Stopped
+    The execution of this process is suspended and will not be scheduled. A process stops as a result of receiving a SIGSTOP, SIGTSP, SIGTTIN or SIGTTOU signal, and remains stopped until it receives a SIGCONT signal, at which point it becomes running again.
+*   Terminated
 
-  The execution of this process is suspended and will not be scheduled. A process stops as a result of receiving a SIGSTOP, SIGTSP, SIGTTIN or SIGTTOU signal, and remains stopped until it receives a SIGCONT signal, at which point it becomes running again.
+    A process become terminated for:
 
-- Terminated
+    * Receving a signal whose default action is to terminate the process
+    * Returning from the main routine
+    * Calling the `exit` function
 
-  A process become terminated for:
-
-  - Receving a signal whose default action is to terminate the process
-  - Returning from the main routine
-  - Calling the `exit` function
-
----
+***
 
 The child gets an identical(but separate) copy of the parent’s user-level virtual address space. The child also gets identical copies of any of the parent’s open file descriptors.
 
@@ -204,15 +202,15 @@ By default(`options = 0`) `waitpid` suspends execution of the calling process un
 
 The value of `pid` determines the members of the wait set:
 
-- If `pid` > 0, …
-- If `pid` = -1, the wait set contains all of the parent’s child processes.
+* If `pid` > 0, …
+* If `pid` = -1, the wait set contains all of the parent’s child processes.
 
 The default behavior can be modified by setting the options:
 
-- `WNOHANG` Return immediately (with a return value of 0) if none of the child processes in the wait set has terminated yet
-- `WUNTRACED` Suspend execution of the calling process until a process in the wait set becomes either terminated or stopped. Return the PID of the terminated or stopped child that caused the return.
-- `WCONTINUED` Suspend execution of the calling process until a running process in the wait set is terminated or until a stopped process in the wait set has been resumed by the receipt of a `SIGCONT` signal.
-- `WNOHANG|WUNTRACED` Return immediately, with a return value of 0, if none of the children in the wait set has stopped or terminated, or wuth a return value equal to the PID of one of the stopped or terminated children.
+* `WNOHANG` Return immediately (with a return value of 0) if none of the child processes in the wait set has terminated yet
+* `WUNTRACED` Suspend execution of the calling process until a process in the wait set becomes either terminated or stopped. Return the PID of the terminated or stopped child that caused the return.
+* `WCONTINUED` Suspend execution of the calling process until a running process in the wait set is terminated or until a stopped process in the wait set has been resumed by the receipt of a `SIGCONT` signal.
+* `WNOHANG|WUNTRACED` Return immediately, with a return value of 0, if none of the children in the wait set has stopped or terminated, or wuth a return value equal to the PID of one of the stopped or terminated children.
 
 The exit status of a reaped child in `*statusp`:
 
@@ -287,16 +285,16 @@ The kernel sends a signal to a destination process by updating some state in the
 
 The signal is delivered for 2 reasons:
 
-- The kernel has detected a system event such as divide-by-zero or the termination of a child process
-- A process has invoked the kill function to explicitly **reuquest the kernel to send a signal** to the signal to the destination process. A process can send a signal to itself.
+* The kernel has detected a system event such as divide-by-zero or the termination of a child process
+* A process has invoked the kill function to explicitly **reuquest the kernel to send a signal** to the signal to the destination process. A process can send a signal to itself.
 
 **Receiving the signal**
 
 A destination process receives a signal when it is forced by the kernel to react in some way to the delivery of the signal. The process can either ignore the signal, terminate ot catch the signal by executing a user-level function called a signal handler.
 
-A signal that has been sent but not yet received is called a pending signal. At any point in time, there can be **at most one** pending signal of a particular type for a. If a process has a pending signal of type *k*, then any subsequent signals of type *k* sent to that process are not required; they are simply discarded.
+A signal that has been sent but not yet received is called a pending signal. At any point in time, there can be **at most one** pending signal of a particular type for a. If a process has a pending signal of type _k_, then any subsequent signals of type _k_ sent to that process are not required; they are simply discarded.
 
-A pending signal is received at most once. **For each process**, th kernel maintains the set of pending signals in the `pending` bit vector( but the `pending` bit vector is not stored in PCB!  ), and the set of blocked signals in the `blocked` bit vector. The kernel sets bit *k* in `pending` whenever a signal of type *k* is delivered adn clears it whenever it is received.
+A pending signal is received at most once. **For each process**, th kernel maintains the set of pending signals in the `pending` bit vector( but the `pending` bit vector is not stored in PCB! ), and the set of blocked signals in the `blocked` bit vector. The kernel sets bit _k_ in `pending` whenever a signal of type _k_ is delivered adn clears it whenever it is received.
 
 ### Sending Signals
 
@@ -375,16 +373,16 @@ In any event, the call to `alarm` cancels any pending alarms and returns the num
 
 When the kernel switches a process p from kernel mode to user mode, it checks the set of unblocked pending signals(`pending&~blocked`) for p.
 
- If the set is empty, then the kernel passes control to the next instruction in the logical control flow of p. 
+If the set is empty, then the kernel passes control to the next instruction in the logical control flow of p.
 
-If the set is nonempty, then the kernel chooses some signal k in the set(typically the smallest k) and forces p to receive signal k. 
+If the set is nonempty, then the kernel chooses some signal k in the set(typically the smallest k) and forces p to receive signal k.
 
 The receipt of the signal triggers some action by the process. Once the process completes the action, then control passes back to the next instruction in the logical control flow of p. Each signal type has a predefined default action, which is one of the following:
 
-- The process terminates
-- The process terminates and dumps core
-- The process stops until restarted by a `SIGCONT` signal
-- The process ignores the signal
+* The process terminates
+* The process terminates and dumps core
+* The process stops until restarted by a `SIGCONT` signal
+* The process ignores the signal
 
 A process can modify the default action associated with a signal by using the `signal` function. The only exceptions are `SIGSTOP` and `SIGKILL`, whose default actions cannot be changed.
 
@@ -400,11 +398,11 @@ sighandler_t signal(int signum, sighandler_t handler);
 
 The `signal` functioncan change the action associated with a signal `signum` in one of three ways:
 
-- If `handler` is `SIG_IGN`, then signals of type `signum` are ignored
-- If `handler` is `SIG_DFL`, then the action of signals of type `signum` reverts to the default action
-- Otherwise, `handler` is the address of a user-defined function, called a signal handler, that will be called whenever the process receives a signal of type `signum`. Changing the default action by passing the address a handler to the `signal` function is known as **installing the handler.** The invocation of the handler is called **catching the signal.** The execution of the handler is referred to as **handling the signal.**
+* If `handler` is `SIG_IGN`, then signals of type `signum` are ignored
+* If `handler` is `SIG_DFL`, then the action of signals of type `signum` reverts to the default action
+* Otherwise, `handler` is the address of a user-defined function, called a signal handler, that will be called whenever the process receives a signal of type `signum`. Changing the default action by passing the address a handler to the `signal` function is known as **installing the handler.** The invocation of the handler is called **catching the signal.** The execution of the handler is referred to as **handling the signal.**
 
-When a process catches a signal of type *k*, the handler installed for signal *k* is invoked with a single integer argument set to *k*. **This argument allows the same handler function to catch different types of signals.**
+When a process catches a signal of type _k_, the handler installed for signal _k_ is invoked with a single integer argument set to _k_. **This argument allows the same handler function to catch different types of signals.**
 
 ![Untitled](https://p.ipic.vip/1a4uxg.jpg)
 
@@ -432,9 +430,9 @@ int sigismember(const sigset_t *set, int signum);
 
 The specific behavior depends on the value of `how`:
 
-- SIG_BLOCK. Add the signals in `set` to blocked (`blocked = blocked | set`).
-- SIG_UNBLOCK. `blocked = blocked & ~set`.
-- SIG_SETMASK. `blocked = set`.
+* SIG\_BLOCK. Add the signals in `set` to blocked (`blocked = blocked | set`).
+* SIG\_UNBLOCK. `blocked = blocked & ~set`.
+* SIG\_SETMASK. `blocked = set`.
 
 If `oldset`is non-NULL, the previous value of the `blocked` bit vector is stored in `oldset`.
 
@@ -446,115 +444,110 @@ The signal handlers run concurrently with the main program. If they try to acces
 
 Guidelines:
 
-- Keep handlers as simple as possible
+* Keep handlers as simple as possible
+*   Call only **async-signal-safe (or simple “safe”)** functions in your handlers
 
-- Call only **async-signal-safe (or simple “safe”)** functions in your handlers
+    i.e. can be safely called from a signal handler.
 
-  i.e. can be safely called from a signal handler.
+    Either it is _reentrant_ (e.g. accesses only local variables)
 
-  Either it is *reentrant* (e.g. accesses only local variables)
+    Or because it cannot be interrupted by a signal handler.
 
-  Or because it cannot be interrupted by a signal handler.
+    **Example 1: Not reentrant**
 
-  **Example 1: Not reentrant**
+    Here's the signal handler:
 
-  Here's the signal handler:
+    ```c
+    volatile sig_atomic_t count = 0;
 
-  ```c
-  volatile sig_atomic_t count = 0;
-  
-  void handler(int signum) {
-      ++count;
-      printf("Signal caught %d time(s)\n", count);
-  }
-  ```
+    void handler(int signum) {
+        ++count;
+        printf("Signal caught %d time(s)\n", count);
+    }
+    ```
 
-  If 2 signals arrive at nearly the same time, two handlers may run concurrently. We increment the count to 1. Before we can printf the count, the count is incremented by another handler to 2. Here is the race condition. To solve this:
+    If 2 signals arrive at nearly the same time, two handlers may run concurrently. We increment the count to 1. Before we can printf the count, the count is incremented by another handler to 2. Here is the race condition. To solve this:
 
-  ```c
-  volatile sig_atomic_t count = 0;
-  pthread_mutex_t count_mutex = PTHREAD_MUTEX_INITIALIZER;
-  
-  void handler(int signum) {
-      pthread_mutex_lock(&count_mutex);
-      ++count;
-      printf("Signal caught %d time(s)\n", count);
-      pthread_mutex_unlock(&count_mutex);
-  }
-  ```
+    ```c
+    volatile sig_atomic_t count = 0;
+    pthread_mutex_t count_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-  **Example 2: Can be interrupted**
+    void handler(int signum) {
+        pthread_mutex_lock(&count_mutex);
+        ++count;
+        printf("Signal caught %d time(s)\n", count);
+        pthread_mutex_unlock(&count_mutex);
+    }
+    ```
 
-  ```c
-  void allocate_memory() {
-      char* buffer = malloc(1024);
-      // do something with buffer
-      free(buffer);
-  }
-  ```
+    **Example 2: Can be interrupted**
 
-  The ONLY safe way to generate output from a signal handler is to use the `write` function. Calling `printf` or `sprintf` is unsafe.
+    ```c
+    void allocate_memory() {
+        char* buffer = malloc(1024);
+        // do something with buffer
+        free(buffer);
+    }
+    ```
 
-  ![Untitled](https://p.ipic.vip/th5z4d.png)
+    The ONLY safe way to generate output from a signal handler is to use the `write` function. Calling `printf` or `sprintf` is unsafe.
 
-- Save and restore `errno`.
+    ![Untitled](https://p.ipic.vip/th5z4d.png)
+*   Save and restore `errno`.
 
-  Many of the Linux async-signal-safe functions ser `errno` when they return with an error. Calling such functions inside a handler might interfere with other parts of the program that rely on `errno`.
+    Many of the Linux async-signal-safe functions ser `errno` when they return with an error. Calling such functions inside a handler might interfere with other parts of the program that rely on `errno`.
 
-  Workaround: save `errno` to a local variable on entry to the handler can restore it before the handler returns. It’s not necessary if the handler terminates the process by calling `_exit`.
+    Workaround: save `errno` to a local variable on entry to the handler can restore it before the handler returns. It’s not necessary if the handler terminates the process by calling `_exit`.
+*   Protecting accesses to shared global data structures by blocking all signals.
 
-- Protecting accesses to shared global data structures by blocking all signals.
+    If sharing a global data structure, then the handlers and main program should temporarily block all signals when accessing(reading or writing) that data structure.
+*   Declare global variables with `volatile`
 
-  If sharing a global data structure, then the handlers and main program should temporarily block all signals when accessing(reading or writing) that data structure.
+    To an optimizing compiler, the compiler will cache a global variable in register. Using `volatile` will force the compiler to read the value from memory each time it is referenced in the code.
 
-- Declare global variables with `volatile`
+    Since threads run asynchronously, any update of global variables due to one thread should be fetched freshly by the other consumer thread.
+*   Declare flags with `sig_atomic_t`
 
-  To an optimizing compiler, the compiler will cache a global variable in register. Using `volatile` will force the compiler to read the value from memory each time it is referenced in the code.
+    In one common handler design, the handler records the receipt of the signal by writing to a global **flag**. The main program periodically reads the **flag**, responding to the signal, and clears the flag.
 
-  Since threads run asynchronously, any update of global variables due to one thread should be fetched freshly by the other consumer thread.
+    For flags shared in this way, we declare it in the way which reads and writes are guaranteed to be atomic (uninterruptible) because they can be implemented with a single instruction:
 
-- Declare flags with `sig_atomic_t`
+    ```java
+    volatile sig_atomic_t flag;
+    ```
 
-  In one common handler design, the handler records the receipt of the signal by writing to a global **flag**. The main program periodically reads the **flag**, responding to the signal, and clears the flag.
+    ```c
+    #include <signal.h>
+    #include <stdio.h>
+    #include <stdlib.h>
 
-  For flags shared in this way, we declare it in the way which reads and writes are guaranteed to be atomic (uninterruptible) because they can be implemented with a single instruction:
+    sig_atomic_t sig_received = 0;
 
-  ```java
-  volatile sig_atomic_t flag;
-  ```
+    void sig_handler(int sig)
+    {
+        sig_received = 1;
+    }
 
-  ```c
-  #include <signal.h>
-  #include <stdio.h>
-  #include <stdlib.h>
-  
-  sig_atomic_t sig_received = 0;
-  
-  void sig_handler(int sig)
-  {
-      sig_received = 1;
-  }
-  
-  int main()
-  {
-      signal(SIGINT, sig_handler);
-  
-      while (1) {
-          if (sig_received) {
-              printf("Signal received!\n");
-              sig_received = 0;
-          }
-      }
-  
-      return 0;
-  }
-  ```
+    int main()
+    {
+        signal(SIGINT, sig_handler);
+
+        while (1) {
+            if (sig_received) {
+                printf("Signal received!\n");
+                sig_received = 0;
+            }
+        }
+
+        return 0;
+    }
+    ```
 
 **Correct Signal Handling**
 
-The key ides is that the existence of a pending signal merely indicates that ***at least*** one signal has arrived.
+The key ides is that the existence of a pending signal merely indicates that _**at least**_ one signal has arrived.
 
-The parent installs a SIGCHLD handler and then creates **three** children. In the meantime, the parent waits for a line of input from the terminal and then process it. 
+The parent installs a SIGCHLD handler and then creates **three** children. In the meantime, the parent waits for a line of input from the terminal and then process it.
 
 ```c
 void handler1(int sig){
@@ -587,8 +580,8 @@ void handler2(int sig){
 
 Different systems have different signal-handling semantics. For example:
 
-- Some older Unix systems restore the action for signed k to its default after signal k has been caught by a handler. The handler should be reinstalled.
-- On some older versions of Unix, slow system calls that are interrupted when a handler catches a signal do not resume when the signal handler returns but instead return immediately to the user with an error condition and `errno` set to $\tiny{EINTR}$. On these systems, programmers must include code that manually restarts interrupted sysetm calls.
+* Some older Unix systems restore the action for signed k to its default after signal k has been caught by a handler. The handler should be reinstalled.
+* On some older versions of Unix, slow system calls that are interrupted when a handler catches a signal do not resume when the signal handler returns but instead return immediately to the user with an error condition and `errno` set to $\tiny{EINTR}$. On these systems, programmers must include code that manually restarts interrupted sysetm calls.
 
 The Posix standard defines the `sigaction` function, which allows users to clearly speicfy the signal-handling semantics they want when they install a handler.
 
@@ -663,7 +656,7 @@ Chances are that a race condition may happen:
 
 After the `fork` function the newly created child is instantly scheduled. The child terminates and call `deletejob`. But the job haven't been added!
 
-By blocking `SIGCHLD` signals before the call to fork and then unblocking them only after we have called `addjob`, we guarantee that the child will be reaped *after* it is added to the job list. Notice that children inherit the blocked set of their parents, so we must be careful to unblock the `SIGCHLD` signal in the child before calling `execve`.
+By blocking `SIGCHLD` signals before the call to fork and then unblocking them only after we have called `addjob`, we guarantee that the child will be reaped _after_ it is added to the job list. Notice that children inherit the blocked set of their parents, so we must be careful to unblock the `SIGCHLD` signal in the child before calling `execve`.
 
 ### Explicitly Waiting for Signals
 
@@ -760,7 +753,7 @@ void siglongjmp(sigjmp_buf env, int retval);
 //never returns
 ```
 
-The `setjmp` function saves the current *calling environment* in the env buffer, for later use by longjmp, and returns 0. The calling environment includes the program counter, stack pointer, and general-purpose registers.
+The `setjmp` function saves the current _calling environment_ in the env buffer, for later use by longjmp, and returns 0. The calling environment includes the program counter, stack pointer, and general-purpose registers.
 
 The `longjmp` function restores the calling environment from the env buffer and then triggers a return from the most recent `setjmp` call that initialized `env`. The `setjmp` then returns with the nonzero return value retval.
 
@@ -798,6 +791,6 @@ int main() {
 }
 ```
 
-To avoid a race, we must install the handler *after* we call `sigsetjmp`. If not, we would run the risk of the handler running before the initial call to `sigsetjmp` sets up the calling environment for `siglongjmp`. 
+To avoid a race, we must install the handler _after_ we call `sigsetjmp`. If not, we would run the risk of the handler running before the initial call to `sigsetjmp` sets up the calling environment for `siglongjmp`.
 
 The `sigsetjmp` and `siglongjmp` functions are not on the list of async-signal-safe functions. The reason is that in general `siglongjmp` can jump into arbitrary code, so we must be careful to call only safe functions in any code reachable from a `siglongjmp`. In our example, we call the safe `sio_puts` and `sleep` functions. The unsafe `exit` function is unreachable.
