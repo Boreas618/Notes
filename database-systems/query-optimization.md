@@ -90,25 +90,25 @@ For each available access path (file scan/ index) is considered, and the one wit
 * Heap scan is always one alternative
 * Each index can be another alternative (if matching selection predicates)
 
-1. Sequential scan of data file: **Cost=[R]**
+1. Sequential scan of data file: **Cost=$$[R]$$**
 
 2. Index selection over a **primary key** (just a single tuple): 
 
-   **Cost(B+ Tree) = Height(I)+1**
+   **Cost(B+ Tree) = $$Height(I)+1$$**
 
-   **Cost(Hash Index) = ProbeCost(I) + 1** ProbeCost(I) ~ 1.2
+   **Cost(Hash Index) =$$ ProbeCost(I) + 1$$** ProbeCost(I) ~ 1.2
 
 3. Clustered index matching one or more predicates:
 
-   **Cost(B+ Tree)=([I]+[R]) $$\times\prod_{i=1..n}RF_{i}$$  **
+   **Cost(B+ Tree)=$$([I]+[R]) \times\prod_{i=1..n}RF_{i}$$  **
 
-   **Cost(HashIndex)=[R] $$\times\prod_{i=1..n}RF_i*2.2$$**
+   **Cost(HashIndex)=$$[R] \times\prod_{i=1..n}RF_i*2.2$$**
 
 4. Non-clustered index matching one or more predicates
 
-   **Cost(B+ Tree)=([I]+|R|) $$\times\prod_{i=1..n}RF_{i}$$**
+   **Cost(B+ Tree)=$$([I]+|R|) \times\prod_{i=1..n}RF_{i}$$**
 
-   **Cost(HashIndex)=|R| $$\times\prod_{i=1..n}RF_i*2.2$$**
+   **Cost(HashIndex)=$$|R| \times\prod_{i=1..n}RF_i*2.2$$**
 
 ### Multiple Relations
 
