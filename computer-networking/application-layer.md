@@ -215,3 +215,92 @@ There are shared CDNs (such as Akamai and Limelight) and dedicated CDNs (such as
 
 * uses `GET` method
 * the request message includes an `If-Modified-Since:` header line
+
+## DNS - The Internet's Directory Service
+
+### Service Provided by DNS
+
+Domain Name System
+
+The DNS is:
+
+* A distributed database implemented in a hierarchy of **DNS servers**
+* An application-layer protocol that allows hosts to query the distributed databases
+
+The DNS protocol runs over UDP and uses port 53.
+
+1. The same user machine runs the client side of the DNS application.
+2. The browser extracts the hostname, *www.someschool.edu*, from the URL and passes the hostname to the client side of the DNS application.
+3. The DNS client sends a query containing the hostname to a DNS server.
+4. The DNS client eventually receives a reply, which includes the IP address for the hostname.
+5. Once the browser receives the IP address from DNS, it can initiate a TCP connection to the HTTP server process located at port 80 at that IP address.
+
+DNS provides a few other important services in addition to translating hostnames to IP addresses:
+
+* Host aliasing 
+
+  **Canonical hostname** vs **Alias hostname** The latter is more mnemonic. DNS can be invoked by an application to obtain the canonical hostname for a supplied alias hostname as well as the IP address of the host.
+
+* Mail server aliasing
+
+* Load distribution
+
+  When clients make a DNS query for a name mapped to a set of addresses, the server responds with the entire set of IP addresses, but rotates the ordering of the addresses within each reply. Because a client typically sends its HTTP request message to the IP address that is listed first in the set, DNS rotation distributes the traffic among the replicated servers.
+
+### Overview of How DNS Works
+
+The application will invoke the client side of DNS, specifying the hostname that needs to be translated. (On many UNIX-based machines, `gethostbyname()` is the function call that an application calls in order to perform the translation.)
+
+DNS in the user’s host then takes over, sending a query message into the network. All DNS query and reply messages are sent within UDP datagrams to port 53.
+
+**A Distributed, Hierarchical Database**
+
+In order to deal with the issue of scale, the DNS uses a large number of servers, organized in a hierarchical fashion and distributed around the world. No single DNS server has all of the mappings for all of the hosts in the Internet.
+
+The client first contacts one of the **root servers**, which returns IP addresses for **TLD(Top Level Domain) servers** for the top-level domain *com*. The client then contacts one of these TLD servers, which returns the IP address of an **authoritative server** for `amazon.com`. Finally, the client contacts one of the authoritative servers for `amazon.com`, which returns the IP address for the hostname `www.amazon.com`.
+
+An organization’s authoritative DNS server houses these DNS records. An organization can choose to implement its own authoritative DNS server to hold these records; alternatively, the organization can pay to have these records stored in an authoritative DNS server of some service provider.
+
+**Local DNS server** A local DNS server does not explicitly belong to the hierarchy of servers but is nevertheless central to the DNS architecture. When a host connects to an ISP, the ISP provides the host with the IP addresses of one or more of its local DNS servers (typically through DHCP). You can easily determine the IP address of your local DNS server by accessing network status windows in Windows or UNIX. When a host makes a DNS query, the query is sent to the local DNS server, which acts a proxy, forwarding the query into the DNS server hierarchy, as we’ll discuss in more detail below.
+
+<img src="https://p.ipic.vip/w9ji26.png" alt="Screenshot 2023-05-01 at 1.01.27 PM" style="zoom:50%;" />
+
+The query sent from `cse.nyu.edu` to `dns.nyu.edu` is a recursive query, sicne the query asks `dns.nyu.edu` to obtain the mapping on its behalf. But the subsequent three queries are iterative since all of the replies are directly returned to `dns.nyu.edu`. In theory, any DNS query can be iterative or recursive.
+
+The query from the requesting host to the local DNS server is recursive, and the remaining queries are iterative.
+
+**DNS Caching**
+
+Each time the local DNS server `dns.nyu.edu` receives a reply from some DNS server, it can cache any of the information contained in the reply.
+
+A local DNS server can also cache the IP addresses of TLD servers, thereby allowing the local DNS server to bypass the root DNS servers in a query chain. In fact, because of caching, root servers are bypassed for all but a very small fraction of DNS queries.
+
+### DNS Records and Messages
+
+The DNS servers store resource records(RRs), including RRs that provides hostname-to-IP address mappings. Each DNS reply message carries one or more resource records.
+
+A four-tuple `(Name, Value, Type, TTL)`
+
+`TTL` is the time to live of the resource record.
+
+* `Type=A` then `Name` is a hostname and `Value` is the IP address for the hostname
+
+* `Type=NS` then `Name` is a domain and `Value` is the hostname of an authoritative DNS server that knows how to obtain the IP address for hosts in the domain.
+* `Type=CNAME` then `Value` is a canonical hostname for the alias hostname `Name`. This record can provide querying hosts the canonical name for a hostname.
+* `Type=MX`, then `Value` is the canonical name of a mail server that has an alias hostname `Name`.
+
+If a DNS server is authoritative for a particular hostname, then the DNS server will contain a Type A record for the hostname. (Even if the DNS server is not authoritative, it may contain a Type A record in its cache.) 
+
+If a server is not authoritative for a hostname, then the server will contain a Type NS record for the domain that includes the hostname; it will also contain a Type A record that provides the IP address of the DNS server in the *Value* field of the NS record. 
+
+**DNS Messages**
+
+Both query and reply messages have the same format. This semantics of the various fields in a DNS message are as follows:
+
+![Screenshot 2023-05-01 at 1.26.17 PM](https://p.ipic.vip/di59ha.png)
+
+**Inserting Records into the DNS Database**
+
+Register your domain name at a registrar. A **registrar** is a commercial entity that verifies the uniqueness of the domain name, enters the domain name into the DNS database, and collects a small fee from you for its services.
+
+When you register the domain name **networkutopia.com** with some registrar, you also need to provide the registrar with the names and IP addresses of your primary and secondary authoritative DNS servers.

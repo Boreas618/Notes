@@ -19,7 +19,7 @@
   * [Probability and Bayes Nets](artificial-intelligence/probability-and-bayes-nets.md)
 * [Computer Networking](computer-networking/README.md)
   * [Computer Networks and the Internet](computer-networking/computer-networks-and-the-internet.md)
-  * [Application Layer](computer-networking/the-network-edge.md)
+  * [Application Layer](computer-networking/application-layer.md)
 * [Rust Programming](rust/README.md)
   * [Common Concepts](rust/common-concepts.md)
   * [Ownership](rust/ownership.md)
