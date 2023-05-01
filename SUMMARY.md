@@ -15,6 +15,7 @@
 * [Artificial Intelligence](artificial-intelligence/README.md)
   * [Introduction](artificial-intelligence/introduction.md)
   * [Graph Search](artificial-intelligence/graph-search.md)
+  * [Game Playing](artificial-intelligence/game-playing.md)
   * [Constraint Satisfaction Problems](artificial-intelligence/constraint-satisfaction-problems.md)
   * [Probability and Bayes Nets](artificial-intelligence/probability-and-bayes-nets.md)
 * [Computer Networking](computer-networking/README.md)
@@ -28,4 +29,3 @@
   * [Packages, Crates and Modules](rust/packages-crates-and-modules.md)
 * [Introduction to Computer System](introduction-to-computer-system/README.md)
   * [Exception Control Flow](introduction-to-computer-system/exception-control-flow.md)
-* [Game Playing](game-playing.md)
