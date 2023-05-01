@@ -165,3 +165,6 @@ _ => move_player
 _ => () //the unint value
 ```
 
+## Concise Control Flow with `if let`
+
+We can think of `if let` as syntax sugar for a `match` that runs code when the value matches one pattern and then ignores all other values.
