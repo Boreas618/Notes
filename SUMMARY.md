@@ -25,5 +25,6 @@
   * [Ownership](rust/ownership.md)
   * [Struct](rust/struct.md)
   * [Enumeration](rust/enumeration.md)
+  * [Packages, Crates and Modules](rust/packages-crates-and-modules.md)
 * [Introduction to Computer System](introduction-to-computer-system/README.md)
   * [Exception Control Flow](introduction-to-computer-system/exception-control-flow.md)
