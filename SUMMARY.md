@@ -28,3 +28,4 @@
   * [Packages, Crates and Modules](rust/packages-crates-and-modules.md)
 * [Introduction to Computer System](introduction-to-computer-system/README.md)
   * [Exception Control Flow](introduction-to-computer-system/exception-control-flow.md)
+* [Game Playing](game-playing.md)
