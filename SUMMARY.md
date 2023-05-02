@@ -12,6 +12,7 @@
 * [Operating Systems](operating-systems/README.md)
   * [Introduction](operating-systems/introduction.md)
   * [Kernels and Processes](operating-systems/kernels-and-processes.md)
+  * [Concurrency](operating-systems/concurrency.md)
 * [Artificial Intelligence](artificial-intelligence/README.md)
   * [Introduction](artificial-intelligence/introduction.md)
   * [Graph Search](artificial-intelligence/graph-search.md)
