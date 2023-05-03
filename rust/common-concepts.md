@@ -1,5 +1,7 @@
 # Common Concepts
 
+`cargo`
+
 ```rust
 cargo run
 cargo build
@@ -22,7 +24,7 @@ geometry = { path = "crates/geometry" }
 fn main() {
   // immutable
   // this is a variable binding
-	let a = 10;
+  let a = 10;
   // mutable
   let mut b: i32 = 20;
   let mut c = 30_i32;
@@ -45,7 +47,7 @@ If `a` variable is immutable, then we shouldn't change `a`.
 
 ### Scalar Types
 
-Rust has four primary scalar types: integers, floating-point numbers, Booleans, and characters. 
+Rust has four primary scalar types: integers, floating-point numbers, Booleans, and characters.
 
 Rust’s `char` type is four bytes in size and represents a Unicode Scalar Value
 
