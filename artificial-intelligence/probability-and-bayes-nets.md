@@ -73,18 +73,6 @@ $$
 P(−b,−e,+a,+j,−m) = P(−b)·P(−e)·P(+a | −b,−e)·P(+j | +a)·P(−m | +a)
 $$
 
-**Proof:**
-
-According to chain rule $$(2)$$:
-$$
-P(−b,−e,+a,+j,−m) = P(−b)·P(−e)·P(+a | −b,−e)·P(+j | −b,−e,+a)·P(−m | −b,−e,+a)
-$$
-Here, under the assumption that **Each node is conditionally independent of all its ancestor nodes in the graph, given all of its parents.** When is given the value of the parents, the value of the ancestors cannot give us more information. Therefore, it's clear to see that
-$$
-P(+j | −b,−e,+a) =P(+j|+a)
-$$
-Same case for $$P(-m|+a)$$.
-
 Not every BN can represent every joint distribution.
 
 **BNs need not actually be causal**: correlated but not causal.
@@ -100,11 +88,35 @@ Important question about a BN: Are two values independent given certain evidence
 
 Each node is conditionally independent of all its ancestor nodes in the graph, **given all of its parents**. But a node may not be independent of its ancestors without the information about its parents.
 
-**Example:**
+**Three Basic Cases:**
 
-Low Pressure $$\rightarrow$$ Rain $\rightarrow$ Traffic
+1. Low Pressure $$\rightarrow$$ Rain $\rightarrow$ Traffic
 
-According to $$(3)$$, traffic is not independent of low pressure. However,  given 
+   According to $$(3)$$, traffic is not independent of low pressure. However,  given Rain, the influence link is "blocked". 
+
+2. Forums busy $$\leftarrow$$ Project Due $$\rightarrow$$ Lab full (Common cause)
+
+   Given Project Due, the Forums and Lab full are independent.
+
+3. Raining $$\rightarrow$$ Traffic $$\leftarrow$$ Ballgame (Common effect)
+
+   Here, however, Raining and Ballgame are independent. Given Traffic,  Raining and Ballgame are not independent. They are in competition as explanation. You know it isn't raining, so it must be a ball game. 
+
+**The general case:**
+
+To get from point A to point B in a graph:
+
+* In a path: all segements needs to be open.
+
+* In a network: one path open is fine.
+
+D-separation is a criterion for deciding whether a set of variables is independent of another set of variables in a Bayes network( i.e. $$X_i\newcommand{\indep}{\perp \!\!\! \perp} \indep X_j |\{X_{k_1}, X_{k_2},\dots,X_{k_n}\}$$ ).
+
+A path is active if each triple is active( i.e. the three basic cases of independent above ). The algorithm checks all undirected paths between $$X_i$$ and $$X_j$$. If one or more active, then independence is not guaranteed. Otherwise, it is. Once $$X$$ and $$Y$$ "d-separated" by $Z$, it means $$X\indep Y | Z$$.
+
+We can prove the local Markov property through the **Bayes reconstitution formula**.
+
+The Local Markov property (a variable is conditionally independent of all other variables given its neighbors) is a necessary condition for the Bayesian reconstitution formula.
 
 ## Bayes Nets (Inference)
 

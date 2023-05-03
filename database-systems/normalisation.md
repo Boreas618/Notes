@@ -18,7 +18,7 @@ A set of attributes $$X$$ **determine**s another set of attributes $$Y$$ if each
 
 Written $$X \rightarrow Y$$
 
- read as $$X$$ determines $$Y$$ (if I know $$X$$ Then I also know $$Y$$)
+Read as $$X$$ determines $$Y$$ (if I know $$X$$ Then I also know $$Y$$)
 
 **Determinants $$(X, Y)\rightarrow Z$$**: the attributes on the left side of the arrow.
 
