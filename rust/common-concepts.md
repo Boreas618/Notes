@@ -45,6 +45,8 @@ fn main() {
 
 If `a` variable is immutable, then we shouldn't change `a`.
 
+A variable binding is a statement that binds a variable to a name. After this statement you may refer to `a` as a **variable** or a **binding** (but not a variable binding).
+
 ### Scalar Types
 
 Rust has four primary scalar types: integers, floating-point numbers, Booleans, and characters.
@@ -53,7 +55,7 @@ Rust’s `char` type is four bytes in size and represents a Unicode Scalar Value
 
 ### Compound Types
 
-To get the individual values out of a tuple, we can use pattern matching to destructure a tuple value.
+To get the individual values out of a tuple, we can use pattern matching to decapsulate a tuple value.
 
 ```rust
 let (x, y, c) = (500, 6.4 1)
@@ -72,7 +74,7 @@ let a: [i32, 5] = [1, 2, 3, 4, 5]
 let a = [3; 5];
 ```
 
-Tree to access outside of the array will cause a runtime error.
+Try to access outside of the array will cause a runtime error.
 
 ## Functions
 
@@ -94,9 +96,9 @@ Return value from `loop`
 
 ```rust
 let result = loop {
-	counter += 1;
-	if counter == 10 {
-  	break counter * 2;
+  counter += 1;
+  if counter == 10 {
+   break counter * 2;
   }
 };
 ```
