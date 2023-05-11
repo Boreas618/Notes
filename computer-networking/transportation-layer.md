@@ -133,3 +133,42 @@ UDP at the sender side performs the 1s complement of the sum of all the 16-bit w
 In the receiver side, all 16-bit words are added, including the checksum. The expected outcome is 1111111111111111. If we encounter 0s, then errors are introduced.
 
 Although UDP provides error checking, it does not do anything to recover from an error. Some implementations of UDP simply discard the damaged segment; others pass the damaged segment to the application with a warning.
+
+## Principles of Reliable Data Transfer
+
+Assumption:  packets will be delivered in the order in which they were sent, with some packets possibly being lost; that is, the underlying channel will not reorder packets.
+
+### Reliable Data Transfer over a Channel with Bit Errors
+
+**ARQ(Automatic Repeat reQuest) protocols**: 
+
+Use both **positive acknowledgements** and **negative acknowledgements**. Repeat the message in error.
+
+Capabilities needed:
+
+* **Error detection**
+
+* **Receiver feedback**
+
+  The positive (ACK) and negative (NAK) acknowledgment replies in the message-dictation scenario are examples of such feedback. 
+
+  Simply one bit.
+
+* **Retransmission**
+
+  A packet that is received in error at the receiver will be retransmitted by the sender.
+
+<img src="https://p.ipic.vip/1mzrrk.png" alt="Screenshot 2023-05-11 at 2.50.28 PM" style="zoom: 33%;" />
+
+It is important to note that when the sender is in the wait-for-ACK-or-NAK
+
+state, it cannot get more data from the upper layer. This is known as **stop-and-wait** protocols.
+
+However, the ACK or NAK can also be corrupted. One solution is to resend the packet when we received a garbled ACK or NAK packet. However, a new issue is introduced in this solution. The receiver of the resented packet doesn't know if the arriving packet contains new data or is a retransmission.
+
+To address this issue, we add the **sequence number** into the packet. For the stop-and-wait protocol, we only need one bit to represent the sequence number. 
+
+![Screenshot 2023-05-11 at 3.08.32 PM](https://p.ipic.vip/346xzp.png)
+
+![Screenshot 2023-05-11 at 3.07.55 PM](https://p.ipic.vip/5bzdv1.png)
+

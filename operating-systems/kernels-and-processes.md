@@ -97,17 +97,17 @@ A common sequence for entering the kernel and returning from the kernel
 
 **Interrupt vector**
 
-A special register pointing to an area of kernel memory called the interrupt vector. The interrupt vector is an array of pointers, with each pointer pointing to the first instruction of a handler procedure.
+A **special register** pointing to an area of kernel memory called the interrupt vector. The interrupt vector is an array of pointers, with each pointer pointing to the first instruction of a handler procedure.
 
 x86: 0-31 hardware exceptions    32-255 interrupts     entry 64 points to the system call trap handler
 
 **Interrupt stack**
 
-A privileged hardware register pointing to a region of kernel memory called the interrupt stack.
+A **privileged hardware register** pointing to a region of **kernel memory** called the interrupt stack.
 
 Procedure:
 
-* Save some of the interrupted process’s registers onto the interrupt stack(done by hardware)
+* Save some of the interrupted process’s registers onto the interrupt stack (done by hardware)
 * call the kernel handler
 * Save the remaining registers(done by the handler)
 * do the handler work
@@ -129,9 +129,9 @@ The hardware provides a privileged instruction to temporarily defer delivery of 
 
 When a context switch occurs the x86 hardware:
 
-* If in user-mode, pushes the interrupted process’s stack pointer onto the kernel’s exception stack, and switches to the kernel stack.
-* Pushes the interrupted process’s instruction pointer
-* Pushes the x86 _processor status word_.
+* If in user-mode, pushes the interrupted process’s stack pointer onto the **kernel’s interrupt stack**. Then the stack pointer is pointed to the **kernel's exception stack**.
+* Pushes the interrupted process’s instruction pointer onto the **kernel's interrupt stack**.
+* Pushes the x86 _processor status word_ onto the **kernel's interrupt stack**.
 
 Once the handler starts running, it can use the `pushad` instruction to save the remaining registers onto the stack.
 
@@ -155,9 +155,7 @@ The current stack position is based on the stack segment `ss` and the stack poin
 4. Optionally save error code. Certain types of exceptions such as page faults **generate an error code** to provide more information about the event; for these exceptions, the hardware pushes this code as the last item on the stack. For other types of events, the software interrupt handler typically pushes a dummy value onto the stack so that the stack format is identical in both cases.
 5. Invoke the interrupt handler. Finally, the hardware changes the program counter to the address of the interrupt handler procedure, speciﬁed via a special register in the processor that is accessible only to the kernel. This register contains a pointer to an array of exception handler addresses in memory. The type of interrupt is mapped to an index in this array, and the program counter is set to the value at this index.
 
-In the interrupt handler process,
-
-`pushad` pushes the rest of the registers, **including the current stack pointer**, onto the stack. x86 `pushad` pushes the contents of all general purpose registers onto the stack.
+In the interrupt handler process, `pushad` pushes the rest of the registers, **including the current stack pointer**, onto the stack. x86 `pushad` pushes the contents of all general purpose registers onto the stack.
 
 At this point the kernel’s exception stack holds
 
@@ -250,7 +248,7 @@ The BIOS reads bootloader from flash RAM or disk.
 
 # The Programming Interface
 
-A **microkernel** isolates privileged but less critical parts of operaing systems to such as the file system and window system, from the rest of the kernel.
+A **micro kernel** isolates privileged but less critical parts of operaing systems to such as the file system and window system, from the rest of the kernel.
 
 The functions are ecapsulated into user-level processes or servers and access from user programs via interprocess communication.
 
@@ -289,7 +287,7 @@ The steps for implementing UNIX `fork` are:
 
 * Create and initialize the PCB in the kernel
 * Create a new address space
-* Initialize teh address space with a copy of the entire contents of the address space of the parent
+* Initialize the address space with a copy of the entire contents of the address space of the parent
 * Inherit the execution context of the parent
 * Inform the scheduler that the new process is ready to run
 
@@ -335,7 +333,7 @@ For interprocess communication:
 
 * Wait for multiple reads
 
-  The UNIX system call select(fd[], number) addresses this. Select allows the server to wait for input from any of a set of ﬁle descriptors; it returns the ﬁle descriptor that has data, but it does not read the data.
+  The UNIX system call `select(fd[], number)` addresses this. Select allows the server to wait for input from any of a set of ﬁle descriptors; it returns the ﬁle descriptor that has data, but it does not read the data.
 
   Windows has an equivalent function, called `WaitForMultipleObjects`.
 
