@@ -1,5 +1,101 @@
 # Game Playing
 
+## Minimax
+
+Idea: choose move to position with highest **minimax value** = best achievable payoff against best play.
+
+<img src="https://p.ipic.vip/oderug.jpg" alt="Screenshot 2023-03-23 at 4.56.42 PM.png" style="zoom:50%;" />
+
+Calculate the minimax value from bottom to top.
+
+<img src="https://p.ipic.vip/oqiw7j.jpg" alt="Screenshot 2023-03-23 at 5.01.53 PM.png" style="zoom:45%;" />
+
+Traverse the search tree all the way down and propagate the minimum and maximum values from the bottom to the top.
+
+**Properties of minimax**
+
+- **Complete** Yes, if tree is infinte
+- **Optimal** Yes against an optimal opponent
+- **Time Complexity** $O(b^m)$
+- **Space Complexity** $O(bm)$ depth-first exploration
+
+**Resource Limits**
+
+We cannot search all the way down to the leaf in practice.
+
+Standard approach:
+
+- cutoff test
+
+  depth limit(perhaps add quiescence search)
+
+- evaluation function
+
+  estimated desirability of position
+
+**Cutting Off Search**
+
+1. $TERMINAL?$ is replaced by $CUTOFF?$
+2. $UTILITY$ is replaced by $EVAL$
+
+>  4-ply $\approx$ human novice
+>
+> 8-ply $\approx$ typical PC, human master
+>
+> 12-ply $\approx$ IBM’s Deep Blue, Kasparov
+
+**Evaluation Functions**
+
+For chess, typically linear weighted sum o features
+
+$EVAL(s) = \omega_1f_1(s)+\omega_2f_2(s)+\dots+\omega_nf_n(s)$
+
+Exact values don’t matter. Behavior is preserved under any **monotonic** transformation of $EVAL$.
+
+Only the order matters: payoff in deterministic games act as an *ordinal utility* function
+
+$\alpha-\beta$ **pruning**
+
+Conceptually, alpha-beta pruning is this: if you’re trying to determine the value of a node *n* by looking at its successors, stop looking as soon as you know that *n*’s value can at best equal the optimal value of *n*’s parent.
+
+<img src="https://p.ipic.vip/oderug.jpg" alt="Screenshot 2023-03-23 at 4.56.42 PM.png" style="zoom:50%;" />
+
+As soon as we visit the child of the middle minimizer with value 2, we no longer need to look at the middle minimizer’s other children. Cause the node final value of the middle minimizer should be $$\leq2$$.
+
+Enable us to abandon part of the search tree.
+
+Pruning **does not** affect final result
+
+Good move ordering improves effectiveness of pruning
+
+With “perfect ordering”, time complexity $=O(b^{\frac{m}{2}})$. In this way, the depth of search can be doubled and the agent can easily reach depth 8 and play good chess.
+
+<img src="https://p.ipic.vip/gsgu7k.jpg" alt="Screenshot 2023-04-11 at 9.52.16 PM.png" style="zoom:50%;" />
+
+Initially, $$\alpha$$ is $$-\infin$$, $$\beta$$ is $$+\infin$$.
+
+<img src="https://p.ipic.vip/nsxv6r.png" alt="image-20230509122605376" style="zoom:50%;" />
+
+**Algorithm for Nondeterministic Games**
+
+$EXPECTMINIMAX$ gives perfect play
+
+Just like $MINIMAX$, except we must also handle chance ndoes:
+
+if $state$ is a chance node then
+
+return average of $EXPECTIMINIMAX-VALUE$ of $SUCCESSORS$$(state)$
+
+**Nondeterministic Games in Practice**
+
+Dice rolls increase $b$
+
+As depth increases, probablity of reaching a given node shrinks. Value of lookahead is diminished.
+
+The values for the evaluation function **should be** exact. Behaviour is preserved only by **positive linear** transformation of $EVAL$. Hence $EVAL$ should be proportional to the expected payoff.
+
+![Screenshot 2023-04-11 at 10.17.20 PM.png](https://p.ipic.vip/30t7cs.png)
+
 ## Monte Carlo Tree Search
 
 In some games it can be hard to find a good evaluation function.
@@ -62,8 +158,6 @@ Where
 - $C$ is a constant that balances the exploitation term $\frac{U(n)}{N(n)}$ and the exploration term $\sqrt{\frac{\log N(Parent(n))}{N(n)}}$.
 
 When choosing between sibling nodes, select the node with the highest $UCB1$ value.
-
-![Screenshot 2023-04-17 at 11.07.09 PM.png](https://p.ipic.vip/6r05il.jpg)
 
 **Expansion and simulation:**
 
