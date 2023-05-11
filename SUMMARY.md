@@ -10,6 +10,7 @@
   * [Query Optimization](database-systems/query-optimization.md)
   * [Normalization](database-systems/normalisation.md)
   * [Transaction](database-systems/transaction.md)
+  * [Database Administration](database-systems/database-administration.md)
 * [Operating Systems](operating-systems/README.md)
   * [Introduction](operating-systems/introduction.md)
   * [Kernels and Processes](operating-systems/kernels-and-processes.md)
