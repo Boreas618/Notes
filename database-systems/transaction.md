@@ -150,3 +150,4 @@ This transaction log contains:
    * pointers to previous and next transaction log entries 
 
 3. The ending (COMMIT) of the transaction
+

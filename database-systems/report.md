@@ -18,7 +18,7 @@ We implemented a minimax agent with a search depth of 3. Unfortunately, while th
 
 In response to the issue of time limits with the minimax approach, we attempted to limit the search time for each iteration. We found that restricting the search to 2 seconds resulted in a low probability of encountering time limits, although this may still occur. However, this solution came at the cost of a significant decrease in search accuracy.
 
-<img src="https://p.ipic.vip/azjacl.png" alt="Screenshot 2023-05-10 at 5.28.57 PM" style="zoom: 33%;" />
+<img src="https://p.ipic.vip/azjacl.png" alt="Screenshot 2023-05-10 at 5.28.57 PM" style="zoom: 25%;" />
 
 In most cases, only approximately 20% of the minimax tree can be explored, which will miss a great number of optimal actions.The agent with a searching depth of 3 and time limit of 2 play 0-5 against our final implementation.
 
@@ -60,11 +60,11 @@ We came up a couple of features to evaluate the situation:
 
 There are three deprecated features above that appear to have a negative impact on our agent's performance. The coefficients for the evaluation function are provided by the `situation_awareness()` function, which adjusts them based on the number of turns. In the final implementation of our project, we fine-tuned the strategy as follows:
 
-```
-if turns < 15: # turns_margin
+```python
+if turns < 50: # turns_margin
   return 0.5, 0.5 # coe1, coe2
 else:
-  return 0.6, 0.4
+  return 0.5, 0.5
 ```
 
 However, the best combination of `(turns_margin, coe1_1, coe1_2, coe2_1, coe2_2)` still needs further investigation. The naive fine-tuning process will be presented in the next session.
@@ -94,3 +94,36 @@ The agent with the configuration `(0.4, 0.6)` plays 8-12 against the initial age
 
 **1.3  Set `(core1_1, coe1_2)` to`(0.6, 0.4)` against initial version**
 
+The agent with the configuration `(0.6, 0.4)` plays 7-13 against the initial agent.
+
+**1.3  Set `(core1_1, coe1_2)` to`(0.4, 0.6)` against initial version**
+
+The agent with the configuration `(0.4, 0.6)` plays 6-14 against the initial agent.
+
+It seems that at `(0.5, 0.5)` is the feasible configuration based on the limited amount of experiments. However, we believe that further investigation should be made in order to achieve the best performance.
+
+**Experiment 2 Performance against the greedy agent**
+
+Our agent played 38-2 against the greedy agent, which aims to achieve the greatest power difference against its opponent. This suggests that our agent is powerful enough to compete against some basic algorithms.
+
+**Experiment 3 Decision-making time**
+
+| $$\# turns$$ | $Game\space time(s)$ | $$Average\space time\space per\space turn(s)$$ |
+| ------------ | -------------------- | ---------------------------------------------- |
+| 161          | 55                   | 0.34                                           |
+| 84           | 22                   | 0.26                                           |
+| 137          | 48                   | 0.35                                           |
+| 249          | 88                   | 0.35                                           |
+| 179          | 55                   | 0.31                                           |
+
+The average computing time for each turn is 0.322s, which is extremely fast.
+
+We have observed that there is still a significant amount of available time within the 180-second time limit. Therefore, we can consider extending the searching depth to 3 in some stages of the game to make better use of the available time. 
+
+By following the same method, we can calculate that the average time per move for an agent with a searching depth of 3 is 4.646s, which is nearly 15 times longer than the 2-depth version. Only a small portion of the searches in a game can be replaced with a 3-depth search. Further investigation is needed to determine whether the update can improve performance.
+
+It turns out that our agent can react swiftly to the board state and can beat random and greedy agents. However, the optimal configuration of the agent still needs further fine-tuning.
+
+## Other Aspects
+
+We use NumPy to improve performance.
