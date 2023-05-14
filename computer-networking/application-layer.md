@@ -4,36 +4,28 @@
 
 ### Network Architecture
 
-In choosing the application architecture, an application developer will likely draw on one of the two predominant architectural paradigms used in modern network applications: the **client-server** architecture or the **peer-to-peer (P2P)** architecture.
-
-Some of the better-known applications with a client-server architecture include the Web, FTP, Telnet, and e-mail.
-
-In a P2P architecture, there is minimal (or no) reliance on dedicated servers in data centers. Instead the application exploits direct communication between pairs of intermittently connected hosts, called peers.
-
-One of the most compelling features of P2P architectures is their **self-scalability**. For example, in a P2P file-sharing application, although each peer generates workload by requesting files, each peer also adds service capacity to the system by distributing files to other peers.
+The two predominant architectural paradigms used in modern network applications: the **client-server** architecture or the **peer-to-peer (P2P)** architecture.
 
 ### Process Communication
 
 Processes on two different end systems communicate with each other by exchanging **messages** across the computer network. Processes communicating with each other reside in the application layer of the five-layer protocol stack.
 
-**Client and Server Processes**
+**Client and Server Processes:** When there’s no confusion, we’ll sometimes also use the terminology “client side and server side of an application". **An application has client and server side.**
 
-When there’s no confusion, we’ll sometimes also use the terminology “client side and server side of an application".**An applicatio has client and server side.**
+**The Interface Between the Process and the Computer Network:** A process sends messages into, and receives messages from, the network through a software interface called a **socket**.
 
- **The Interface Between the Process and the Computer Network**
-
-A process sends messages into, and receives messages from, the network through a software interface called a **socket**. A socket is like a door!
-
-![Screenshot 2023-04-26 at 6.00.20 PM](https://p.ipic.vip/jk95ql.png)
+![](https://p.ipic.vip/jk95ql.png)
 
 A socket is the interface between the application layer and the transport layer within a host. It is also referred to as the **Application Programming Interface (API)** between the application and the network, since the socket is the programming interface with which network applications are built.
 
 **Addressing Processes**
 
-To identify the receiving process, two pieces of information need to be specified: 
+To identify the receiving process, two pieces of information need to be specified:
 
 * the address of the host (IP address)
 * an identifier that specifies the receiving process in the destination host (port number)
+
+**Only one program can bind a socket to a particular port at any given time.**
 
 ### Transport Services Available to Applications
 
@@ -44,29 +36,28 @@ Four dimensions of services a transport-layer protocol can offer to applications
 * timing
 * security
 
-**Reliable data transfer**: Some multimedia applications are **loss-tolerant applications**.
+**Reliable data transfer**: Some multimedia applications are **loss-tolerant applications** while some other applications requires reliable data transfer.
 
 **Throughout**: a guaranteed throughput of r bits/sec. Applications that have throughput requirements are said to be **bandwidth-sensitive applications**. WeChat video call.
 
-**Timing**: An example guarantee might be that every bit that the sender pumps into the socket arrives at the receiver’s socket no more than 100 msec later.
+**Timing**: An example guarantee might be that every bit that the sender pumps into the socket arrives at the receiver’s socket no more than 100 ms later.
 
 ### Transport Services Provided by the Internet
 
- The Internet (and, more generally, TCP/IP networks) makes two transport protocols available to applications, UDP and TCP. When you (as an application developer) create a new network application for the Internet, one of the first decisions you have to make is whether to use UDP or TCP. Each of these protocols offers a different set of services to the invoking applications.
+The Internet (and, more generally, TCP/IP networks) makes two transport protocols available to applications, UDP and TCP. When you (as an application developer) create a new network application for the Internet, one of the first decisions you have to make is whether to use UDP or TCP. Each of these protocols offers a different set of services to the invoking applications.
 
 **TCP Services**
 
 The TCP service model includes a connection-oriented service and a reliable data transfer service.
 
-* Connection-oriented services
+*   Connection-oriented services
 
-  Handshaking $$\rightarrow$$ TCP connection
+    Handshaking $$\rightarrow$$ TCP connection
 
-  The connection is a full-duplex connection in that the two processes can send messages to each other over the connection at the same time. When the application finishes sending messages, it must tear down the connection.
+    The connection is a full-duplex connection in that the two processes can send messages to each other over the connection at the same time. When the application finishes sending messages, it must tear down the connection.
+*   Reliable data transfer
 
-* Reliable data transfer
-
-  No missing or duplicate bytes
+    No missing or duplicate bytes
 
 TCP congestion control also attempts to limit each TCP connection to its fair share of network bandwidth.
 
@@ -78,7 +69,7 @@ Today’s Internet can often provide satisfactory service to time-sensitive appl
 
 Internet telephony applications usually prefer to run their applications over UDP, thereby circumventing TCP’s congestion control mechanism and packet overheads. But because many firewalls are configured to block (most types of) UDP traffic, TCP serves as a backup if UDP communication fails.
 
-![Screenshot 2023-04-26 at 6.40.01 PM](https://p.ipic.vip/xpkp3e.png)
+![](https://p.ipic.vip/xpkp3e.png)
 
 ### Application-Layer Protocols
 
@@ -94,7 +85,7 @@ HTTP(Hyper Text Transfer Protocol) is the Web's application-layer protocol. It i
 
 A Web page consists of objects. A HTML file references the other objects in the page with the object's URLs.
 
-HTTP uses TCP as its underlying transport protocol.
+**HTTP uses TCP as its underlying transport protocol.**
 
 The HTTP client first initiates a TCP connection with the server. Once the connection is established, the browser and the server processes access TCP through their socket interfaces.
 
@@ -113,10 +104,10 @@ http://www.someSchool.edu/someDepartment/home.index
 ```
 
 1. The HTTP client process initiates a TCP connection to the server on port number 80.
-2. The HTTP client sends an HTTP request message to the server via its socket. The request message includes the path name `/someDepartment/home.index`. 
+2. The HTTP client sends an HTTP request message to the server via its socket. The request message includes the path name `/someDepartment/home.index`.
 3. The HTTP server process receives the request message via its socket, encapsulates the object in an HTTP response message, and sends the response message to the client via its socket.
 4. The HTTP server process tells TCP to close the TCP connection.
-5. The HTTP client receives the response message. The TCP connection terminates. 
+5. The HTTP client receives the response message. The TCP connection terminates.
 6. The first four steps are then repeated for each of the referenced JPEG objects.
 
 11 TCP connections are generated.
@@ -129,7 +120,7 @@ A three-way handshake: the client sends a small TCP segment to the server, the s
 
 Subsequent requests and responses between the same client and server can be sent over the same connection.
 
-Multiple Web pages residing on the same server can be sent from the server to the same client over a single persistent TCP connection. 
+Multiple Web pages residing on the same server can be sent from the server to the same client over a single persistent TCP connection.
 
 Typically, the HTTP server closes a connection when it isn’t used for a certain time (a configurable timeout interval)
 
@@ -148,7 +139,7 @@ Request line and header lines
 
 `Connection: close` means non-persistent connection.
 
-<img src="https://p.ipic.vip/95tmpc.png" alt="Screenshot 2023-04-27 at 1.39.06 PM" style="zoom:50%;" />
+<figure><img src="https://p.ipic.vip/95tmpc.png" alt="" width="375"><figcaption></figcaption></figure>
 
 `HEAD` leaves out the requested object. For debugging.
 
@@ -168,15 +159,15 @@ Content-Type: text/html
 
 Status line and header lines
 
-The `Date:` header line indicates the time and date when the HTTP response was created and sent by the server. 
+The `Date:` header line indicates the time and date when the HTTP response was created and sent by the server.
 
-<img src="https://p.ipic.vip/xqorkn.png" alt="Screenshot 2023-04-27 at 1.44.40 PM" style="zoom:50%;" />
+<figure><img src="https://p.ipic.vip/xqorkn.png" alt="" width="375"><figcaption></figcaption></figure>
 
 ### User-Server Interaction: Cookies
 
 HTTP is stateless. We can use cookies to keep track of users.
 
-Cookie technology has four components: 
+Cookie technology has four components:
 
 * a cookie header line in the HTTP response message
 * a cookie header line in the HTTP request message
@@ -201,13 +192,13 @@ Cookies can thus be used to create a user session layer on top of stateless HTTP
 
 A **Web cache**—also called a **proxy server**—is a network entity that satisfies HTTP requests on the behalf of an origin Web server. The Web cache has its own disk storage and keeps copies of recently requested objects in this storage.
 
-<img src="https://p.ipic.vip/nithz4.png" alt="Screenshot 2023-04-27 at 2.10.38 PM" style="zoom:50%;" />
+<figure><img src="https://p.ipic.vip/nithz4.png" alt="" width="375"><figcaption></figcaption></figure>
 
-A cache is both a server and a client at the same time。
+A cache is both a server and a client at the same time.
 
 Typically a Web cache is purchased and installed by an ISP.
 
-Through the use of **Content Distribution Networks (CDNs)**, Web caches are increasingly playing an important role in the Internet. 
+Through the use of **Content Distribution Networks (CDNs)**, Web caches are increasingly playing an important role in the Internet.
 
 There are shared CDNs (such as Akamai and Limelight) and dedicated CDNs (such as Google and Netflix).
 
@@ -225,27 +216,25 @@ Domain Name System
 The DNS is:
 
 * A distributed database implemented in a hierarchy of **DNS servers**
-* An application-layer protocol that allows hosts to query the distributed databases
+* **An application-layer protocol** that allows hosts to query the distributed databases
 
 The DNS protocol runs over UDP and uses port 53.
 
 1. The same user machine runs the client side of the DNS application.
-2. The browser extracts the hostname, *www.someschool.edu*, from the URL and passes the hostname to the client side of the DNS application.
+2. The browser extracts the hostname, _www.someschool.edu_, from the URL and passes the hostname to the client side of the DNS application.
 3. The DNS client sends a query containing the hostname to a DNS server.
 4. The DNS client eventually receives a reply, which includes the IP address for the hostname.
 5. Once the browser receives the IP address from DNS, it can initiate a TCP connection to the HTTP server process located at port 80 at that IP address.
 
 DNS provides a few other important services in addition to translating hostnames to IP addresses:
 
-* Host aliasing 
+*   Host aliasing
 
-  **Canonical hostname** vs **Alias hostname** The latter is more mnemonic. DNS can be invoked by an application to obtain the canonical hostname for a supplied alias hostname as well as the IP address of the host.
-
+    **Canonical hostname** vs **Alias hostname** The latter is more mnemonic. DNS can be invoked by an application to obtain the canonical hostname for a supplied alias hostname as well as the IP address of the host.
 * Mail server aliasing
+*   Load distribution
 
-* Load distribution
-
-  When clients make a DNS query for a name mapped to a set of addresses, the server responds with the entire set of IP addresses, but rotates the ordering of the addresses within each reply. Because a client typically sends its HTTP request message to the IP address that is listed first in the set, DNS rotation distributes the traffic among the replicated servers.
+    When clients make a DNS query for a name mapped to a set of addresses, the server responds with the entire set of IP addresses, but rotates the ordering of the addresses within each reply. Because a client typically sends its HTTP request message to the IP address that is listed first in the set, DNS rotation distributes the traffic among the replicated servers.
 
 ### Overview of How DNS Works
 
@@ -257,13 +246,13 @@ DNS in the user’s host then takes over, sending a query message into the netwo
 
 In order to deal with the issue of scale, the DNS uses a large number of servers, organized in a hierarchical fashion and distributed around the world. No single DNS server has all of the mappings for all of the hosts in the Internet.
 
-The client first contacts one of the **root servers**, which returns IP addresses for **TLD(Top Level Domain) servers** for the top-level domain *com*. The client then contacts one of these TLD servers, which returns the IP address of an **authoritative server** for `amazon.com`. Finally, the client contacts one of the authoritative servers for `amazon.com`, which returns the IP address for the hostname `www.amazon.com`.
+The client first contacts one of the **root servers**, which returns IP addresses for **TLD(Top Level Domain) servers** for the top-level domain _com_. The client then contacts one of these TLD servers, which returns the IP address of an **authoritative server** for `amazon.com`. Finally, the client contacts one of the authoritative servers for `amazon.com`, which returns the IP address for the hostname `www.amazon.com`.
 
 An organization’s authoritative DNS server houses these DNS records. An organization can choose to implement its own authoritative DNS server to hold these records; alternatively, the organization can pay to have these records stored in an authoritative DNS server of some service provider.
 
 **Local DNS server** A local DNS server does not explicitly belong to the hierarchy of servers but is nevertheless central to the DNS architecture. When a host connects to an ISP, the ISP provides the host with the IP addresses of one or more of its local DNS servers (typically through DHCP). You can easily determine the IP address of your local DNS server by accessing network status windows in Windows or UNIX. When a host makes a DNS query, the query is sent to the local DNS server, which acts a proxy, forwarding the query into the DNS server hierarchy, as we’ll discuss in more detail below.
 
-<img src="https://p.ipic.vip/w9ji26.png" alt="Screenshot 2023-05-01 at 1.01.27 PM" style="zoom:50%;" />
+![Screenshot 2023-05-01 at 1.01.27 PM](https://p.ipic.vip/w9ji26.png)
 
 The query sent from `cse.nyu.edu` to `dns.nyu.edu` is a recursive query, sicne the query asks `dns.nyu.edu` to obtain the mapping on its behalf. But the subsequent three queries are iterative since all of the replies are directly returned to `dns.nyu.edu`. In theory, any DNS query can be iterative or recursive.
 
@@ -284,14 +273,13 @@ A four-tuple `(Name, Value, Type, TTL)`
 `TTL` is the time to live of the resource record.
 
 * `Type=A` then `Name` is a hostname and `Value` is the IP address for the hostname
-
 * `Type=NS` then `Name` is a domain and `Value` is the hostname of an authoritative DNS server that knows how to obtain the IP address for hosts in the domain.
 * `Type=CNAME` then `Value` is a canonical hostname for the alias hostname `Name`. This record can provide querying hosts the canonical name for a hostname.
 * `Type=MX`, then `Value` is the canonical name of a mail server that has an alias hostname `Name`.
 
-If a DNS server is authoritative for a particular hostname, then the DNS server will contain a Type A record for the hostname. (Even if the DNS server is not authoritative, it may contain a Type A record in its cache.) 
+If a DNS server is authoritative for a particular hostname, then the DNS server will contain a Type A record for the hostname. (Even if the DNS server is not authoritative, it may contain a Type A record in its cache.)
 
-If a server is not authoritative for a hostname, then the server will contain a Type NS record for the domain that includes the hostname; it will also contain a Type A record that provides the IP address of the DNS server in the *Value* field of the NS record. 
+If a server is not authoritative for a hostname, then the server will contain a Type NS record for the domain that includes the hostname; it will also contain a Type A record that provides the IP address of the DNS server in the _Value_ field of the NS record.
 
 **DNS Messages**
 
