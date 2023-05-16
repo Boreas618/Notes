@@ -1,18 +1,10 @@
 # Query Optimization
 
-<figure><img src="https://p.ipic.vip/80jg4e.png" alt="" width="375"><figcaption></figcaption></figure>
-
-We will cover:
-
-* Relational algebra equivalences
-* Cost estimation
-* Enumeration of alternative plans
-
 **Query Plan** is a tree, with relational algebra operators as nodes and access paths as leaves. Each operator labeled with a choice of algorithm.
 
 ```sql
 SELECT sname 
-From Sailors NATURAL JOIN Reserves
+FROM Sailors NATURAL JOIN Reserves
 WHERE bid = 100 and rating > 5
 ```
 
@@ -25,8 +17,6 @@ Query optimization steps:
 1. Query first broken into "blocks"
 2. Each block converted to relational algebra
 3.  Then, for each block, several alternative query plans are considered
-
-    Joins are associative and commutative
 
     Cross product is costly. We can convert cross product into natural join. We'd better reduce the amount of tuples needed in the join.
 
@@ -42,7 +32,7 @@ For each plan considered, must estimate cost:
 
     Depends on input cardinalities
 
-To decide on the cost, the optimizer needs information about the relations and indexes involved. This information is stored in the system **catalogs**.
+To decide on the cost, the optimizer needs information about the relations and indices involved. This information is stored in the system **catalogs**.
 
 Catalogs typically contain at least:
 
@@ -54,7 +44,7 @@ Catalogs typically contain at least:
 
 Statistics in catalogs are updated periodically.
 
-### Result size estimation
+## Result size estimation
 
 **Reduction factor** associated with each predicate reflects the impact of the predicate in reducing the result size. RF is also called selectivity.
 
@@ -68,7 +58,7 @@ Joins over $$k$$ tables: $$Size=\prod_{j=1..k}[R_j]\prod_{i=1..n}RF_i$$
 
 **Col < value** $$RF=\frac{value-Low(Col)}{High(Col)-Low(Col)}$$
 
-\*\*Col\_A=Col\_B (for joins) \*\* $$RF=\frac{1}{Max(\#Keys(Col_A),\#Keys(Col_B))}$$
+**Col\_A=Col\_B (for joins)** $$RF=\frac{1}{Max(\#Keys(Col_A),\#Keys(Col_B))}$$
 
 **No information** $$RF=\frac{1}{10}$$
 
@@ -96,12 +86,12 @@ For each available access path (file scan/ index) is considered, and the one wit
 
     **Cost(B+ Tree)** = $$([I]+[R]) \times\prod_{i=1..n}RF_{i}$$
 
-    **Cost(Hash Index)** = $$[R] \times\prod_{i=1..n}RF_i*2.2$$
+    **Cost(Hash Index)** = $$[R] \times\prod_{i=1..n}RF_i \times2.2$$
 4.  Non-clustered index matching one or more predicates
 
     **Cost(B+ Tree)** = $$([I]+|R|) \times\prod_{i=1..n}RF_{i}$$
 
-    **Cost(Hash Index)** = $$|R| \times\prod_{i=1..n}RF_i*2.2$$
+    **Cost(Hash Index)** = $$|R| \times\prod_{i=1..n}RF_i\times2.2$$
 
 ### Multiple Relations
 
