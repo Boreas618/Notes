@@ -5,34 +5,31 @@
 Main weapons are:
 
 1. clever implementations techniques for operators
-2. exploiting ‘quivalencies’ of relational operators
+2. exploiting ‘equivalencies’ of relational operators
 3. using cost models to choose among alternatives
 
 #### Workflow
 
-![Screenshot 2023-04-17 at 5.26.23 PM.png](https://p.ipic.vip/d5o8xl.jpg)
+![](https://p.ipic.vip/d5o8xl.jpg)
 
 ## Selections
 
 **Schema for Examples**
 
+```
 Sailors(sid: integer, sname: string, rating: integer, age: real)
-
 Reserves(sid: integer, bid: integer, day: dates, rname: string)
+```
 
-**Sailors(S)**
+**Sailors(S)** Each tuple is 50 bytes long, 80 tuples per page, 500 pages
 
-Each tuple is 50 tuples long, 80 tuples per page, 500 pages
-
-**Reserves(R)**
-
-Each tuple is 40 bytes long, 100 tuples per page, 1000 pages
+**Reserves(R)** Each tuple is 40 bytes long, 100 tuples per page, 1000 pages
 
 ### Simple Selections
 
 The best way to preform a selection depends on:
 
-1. avaliable indexes/access paths
+1. available indexes/access paths
 2. expected **size of the result** (number of tuples and/or number of pages)
 
 **Estimate result size (reduction factor)**
@@ -47,16 +44,12 @@ This is estimated by the optimizer.
 
 #### Alternatives for Simple Selections
 
-1.  With no index, unsorted:
-
-    Must scan the whole relation, i.e. perform Heap Scan
+1.  With no index, unsorted: We must scan the whole relation, i.e. perform Heap Scan.
 
     **Cost =** $$[R]$$
 2.  With no index, but file is sorted:
 
-    **Cost =** binary search cost + $$[R_{condition}]$$
-
-    **Cost =** $$\log_2([R]) + (RF\times [R])$$
+    **Cost =** cost of binary search + $$[R_{condition}]$$ **=** $$\log_2([R]) + (RF\times [R])$$
 3.  With an index on selection attribute:
 
     Use index to find qualifying data entries, then retrieve corresponding data records
@@ -72,7 +65,7 @@ This is estimated by the optimizer.
 
 ### General Selection Conditions
 
-Typically queires have multiple predicates (conditions)
+Typically queries have multiple predicates (conditions)
 
 Example: `day<8/9/94 AND rname='Paul' AND bid=5 AND sid=3`
 
@@ -98,7 +91,7 @@ This implies that only reduction factors of the **matching predicates(or primary
 
 **Example: `day < 8/9/24 AND bid = 5 AND sid = 3`**
 
-A **B+ tree** index **on day** can be used: $$RF = RF(day)$$ . Then `bid=5` and `sid=3` must be checked for each retrieved tuple on the fly
+A **B+ tree** index **on day** can be used: $$RF = RF(day)$$ . Then `bid=5` and `sid=3` must be checked for each retrieved tuple **on the fly**
 
 Similarly, a **hash index on \<bid, sid>** could be used $$\prod RF=RF(bid)\times RF(sid)$$. Then, `day<8/9/94` must be checked on the fly.
 
@@ -111,7 +104,7 @@ SELECT DISTINCT R.sid, R.bid
 FROM Reserves R;
 ```
 
-Projection can be done based on **hashing** or **sorting.** By sorting, the duplicates are adjacent to each other. Bu hashing, the duplicates fall on the same bucket.
+Projection can be done based on **sorting** or **hashing.** By sorting, the duplicates are adjacent to each other. By hashing, the duplicates fall on the same bucket.
 
 ### Sorting
 
@@ -127,9 +120,9 @@ Usually, we bring data from disk to memory to sort it. But what if the data is t
 
 When sorting a file, several sorted subfiles are typically generated in intermediate steps. Each sorted file is called a **run**.
 
-In the first pass, the pages in the file are read in one at a time. After a page is read in, **the records on it are sorted and the sorted page is written out**.
+In the first pass, the pages in the file are read in **one at a time**. After a page is read in, **the records on it are sorted and the sorted page is written out**.
 
-In subsequent passes, pairs of runs from the output of the preovious pass are read in and merged to produce runs that are twice as long.
+In subsequent passes, pairs of runs from the output of the previous pass are read in and merged to produce runs that are twice as long.
 
 If the number of pages in the input file is $$2^k$$, for some $$k$$, then:
 
@@ -145,7 +138,7 @@ Pass $$k$$ produces $$1$$ sorted run of $$2^k$$ pages.
 
 In each pass, we read every page in the file, process it, and write it out. We have 2 I/Os per page, per pass. The overall cost is $$2N(\lceil \log_{2}^{N}\rceil+1)$$ I/Os.
 
-Only three buffer pages in the memory is needed (Two inputs and oen output). In order to merge 2 **sorted runs,** we only need two buffer pages. We compare the records respectively. Once one page of one sorted run is run out, we can load a new page. Therefore, to merge 2 sorted runs, only 2 buffer pages are needed. Beyond 2 buffer pages, 1 output page is needed.
+Only three buffer pages in the memory is needed (Two inputs and one(most cases, but not necessarily) output). In order to merge 2 **sorted runs,** we only need two buffer pages. We compare the records respectively. Once one page of one sorted run is run out, we can load a new page. Therefore, to merge 2 sorted runs, only 2 buffer pages are needed. Beyond 2 buffer pages, 1 output page is needed.
 
 #### External Merge Sort
 
@@ -156,7 +149,7 @@ Two optimizations as opposed to Two-way merge sort:
 
 The number of I/Os needed is $$2N\times(1+\lceil \log _{B-1}^{\frac{N}{B}}\rceil)$$.
 
-Sort runs: Make each B pages sorted (called runs)
+Sort runs: Make each $$B$$ pages sorted (called runs)
 
 Merge runs: Make multiple passes to merge runs
 
@@ -165,7 +158,7 @@ Merge runs: Make multiple passes to merge runs
 * …
 * Pass P: Produce runs of length $$B(B-1)^P$$ pages
 
-![Screenshot 2023-04-18 at 7.56.32 PM.png](https://p.ipic.vip/98kp15.jpg)
+![](https://p.ipic.vip/98kp15.jpg)
 
 Projection with **external sort:**
 
@@ -173,7 +166,7 @@ Projection with **external sort:**
 2. Sort the result set using EXTERNAL SORT
 3. Remove adjacent duplicates
 
-![Screenshot 2023-04-18 at 8.08.53 PM.png](https://p.ipic.vip/e31if3.png)
+![](https://p.ipic.vip/e31if3.png)
 
 **WriteProjectedPages** = $$[R] \times PF$$
 
@@ -191,7 +184,7 @@ Projection with **external sort:**
 
     2 tuples from different partitions guaranteed to be distinct
 
-![Screenshot 2023-04-18 at 8.17.46 PM.png](https://p.ipic.vip/quha8m.jpg)
+![](https://p.ipic.vip/quha8m.jpg)
 
 #### Projection based on External Hashing
 
@@ -199,7 +192,7 @@ Projection with **external sort:**
 
 Load each partition, hash it with another hash function($$h_2$$) and eliminate duplicates
 
-![Screenshot 2023-04-18 at 8.21.46 PM.png](https://p.ipic.vip/nip3w9.png)
+![](https://p.ipic.vip/nip3w9.png)
 
 1. Partitioning phase
    * Read $$R$$ using one input buffer
@@ -214,7 +207,7 @@ Load each partition, hash it with another hash function($$h_2$$) and eliminate d
 2. Duplicate elimination phase
    *   For each partition
 
-       Read it and build an in-memory hash table -
+       Read it and build an in-memory hash table
 
        Using hash function $$h_2$$ on all fields
 
@@ -243,13 +236,13 @@ Join techniques we will cover:
 * Sorted-merge join
 * Hash join
 
-Cross product is very expensive. $$R \times S$$ followed by a selection is inefficient.
+Cross product is very expensive. So if you want to perform a condition join, do $$R \times S$$ followed by a selection is inefficient.
 
 Consider two inputs of tables:
 
-The left input is called the **outer input** and right input \*\*is called the **inner inpu**t.
+The left input is called the **outer input** and right input is called the **inner inpu**t.
 
-![Screenshot 2023-04-21 at 6.54.56 AM.png](https://p.ipic.vip/k1wgav.png)
+![](https://p.ipic.vip/k1wgav.png)
 
 Have nothing to do with inner/ outer joins!
 
@@ -261,7 +254,7 @@ For each tuple in the outer relation R, we scan the entire inner relation S.
 
 **Pseudo Code**:
 
-```pseudocode
+```
 foreach tuple in R do
 	foreach tuple s in S do
 		if ri == sj then add<r, s> to result
@@ -291,13 +284,13 @@ Page-oriented NL doesn’t exploit extra memory buffers
 
 Use one page as an input buffer for scanning the inner S, one page as the output buffer, and use the remaining pages to hold ‘block’ of outer R.
 
-For each matching tuple $$r$$ in R-block, $$s$$ in S-page, add $$<r,s>$$ to result. Then read next R-block,scan S, etc.
+For each matching tuple $$r$$ in R-block, $$s$$ in S-page, add $$<r,s>$$ to result. Then read next R-block, scan S, etc.
 
-![Screenshot 2023-04-21 at 7.20.09 AM.png](https://p.ipic.vip/7wwbch.jpg)
+![](https://p.ipic.vip/7wwbch.jpg)
 
-**Cost** = $$[Outer]+NBlocks(Outer)\times [Inner]$$
+**Cost** = $$[Outer]+\# Blocks(Outer)\times [Inner]$$
 
-$$\tiny{NBlocks(Outer)=\lceil\frac{[Outer]}{B-2}\rceil}$$
+$$\#Blocks(Outer)=\lceil\frac{[Outer]}{B-2}\rceil$$
 
 ### Index Nested Loop Join
 
@@ -315,25 +308,24 @@ It's cumbersom to handle the identical keys in $$R$$ and $$S$$.
 
 ```
 function sort_merge_join():
-	sort(R)
-	sort(S)
-	p := first tuple of R
-	q := first tuple of S
-	result := []
-	while !(either p or q reaches the end of its relation):
-		if R[p].join_attribute < S[q].join_attribute:
-  		increment(p)
-  	else if R[p].join_attribute > S[q].join_attribute:
-  		increment(q)
-  	else (R[p].join_attribute == S[q].join_attribute):
-    	mark(q)
-    	while R[p].join_attribute == S[q].join_attribute:
-    		result.add(join(R[p], S[q]))
-      	increment(q)
-    	restore(q)
-  		increment(p)
- 	return result
-
+  sort(R)
+  sort(S)
+  p := first tuple of R
+  q := first tuple of S
+  result := []
+  while !(either p or q reaches the end of its relation):
+    if R[p].join_attribute < S[q].join_attribute:
+      increment(p)
+    else if R[p].join_attribute > S[q].join_attribute:
+      increment(q)
+    else (R[p].join_attribute == S[q].join_attribute):
+      mark(q)
+    while R[p].join_attribute == S[q].join_attribute:
+      result.add(join(R[p], S[q]))
+      increment(q)
+    restore(q)
+    increment(p)
+  return result
 ```
 
 **Average cost =** $$Sort(R)+Sort(S)+[R]+[S]$$
