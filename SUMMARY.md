@@ -21,6 +21,7 @@
   * [Normalization](database-systems/normalisation.md)
   * [Transaction](database-systems/transaction.md)
   * [Database Administration](database-systems/database-administration.md)
+  * [Data Warehousing](database-systems/data-warehousing.md)
 * [Introduction to Computer System](introduction-to-computer-system/README.md)
   * [Exception Control Flow](introduction-to-computer-system/exception-control-flow.md)
   * [Network Programming](introduction-to-computer-system/network-programming.md)
