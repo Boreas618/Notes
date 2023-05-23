@@ -35,9 +35,9 @@ Three types of variables:
 
 # BAYES NETS
 
-Not impractical to store the entire joint distribution in the memory.
+Not impractical to store the **entire** joint distribution in the memory.
 
-Each node in the graph represents a single random variables and each directed edge represents one of the conditional probability distributions we choose to store. An edge from node $$A$$ to node $$B$$ indicates that we store the probability table for $$P(B | A)$$. 
+Bayes' Net is a directed, acyclic graph. Each node in the graph represents a single random variables and each directed edge represents one of the conditional probability distributions we choose to store. An edge from node $$A$$ to node $$B$$ indicates that we store the probability table for $$P(B | A)$$.  A condition probability table is stored underneath the node. The CPT is a collection of distributions over $$X$$, one for each combination of parents' values.
 
 There's a conditional distribution for each node. That is a collection of distributions over $$X$$, one for each combination of parents' values.
 
@@ -79,7 +79,7 @@ Not every BN can represent every joint distribution.
 
 Topology really encodes conditional independence.
 
-## Bayes Nets Independence
+## Bayes Nets (Independence)
 
 Important question about a BN: Are two values independent given certain evidence?
 
@@ -100,7 +100,7 @@ Each node is conditionally independent of all its ancestor nodes in the graph, *
 
 3. Raining $$\rightarrow$$ Traffic $$\leftarrow$$ Ballgame (Common effect)
 
-   Here, however, Raining and Ballgame are independent. Given Traffic,  Raining and Ballgame are not independent. They are in competition as explanation. You know it isn't raining, so it must be a ball game. 
+   Here, however, Raining and Ballgame are independent without the information of traffic. Given Traffic,  Raining and Ballgame are not independent. They are in competition as explanation. You know it isn't raining, so it must be a ball game. 
 
 **The general case:**
 
@@ -112,11 +112,19 @@ To get from point A to point B in a graph:
 
 D-separation is a criterion for deciding whether a set of variables is independent of another set of variables in a Bayes network( i.e. $$X_i\newcommand{\indep}{\perp \!\!\! \perp} \indep X_j |\{X_{k_1}, X_{k_2},\dots,X_{k_n}\}$$ ).
 
-A path is active if each triple is active( i.e. the three basic cases of independent above ). The algorithm checks all undirected paths between $$X_i$$ and $$X_j$$. If one or more active, then independence is not guaranteed. Otherwise, it is. Once $$X$$ and $$Y$$ "d-separated" by $Z$, it means $$X\indep Y | Z$$.
+A path is active if each triple is active( i.e. the **influence** can flow, the two edges of the triple is **not independent** ). The algorithm checks all undirected paths between $$X_i$$ and $$X_j$$. If one or more active, then independence is not guaranteed. Otherwise, it is. Once $$X$$ and $$Y$$ "d-separated" by $Z$, it means $$X\indep Y | Z$$.
+
+Given a Bayes net structure, we can run d-separation algorithm to build a complete  list of conditional independencies that are necessarily true of the form:
+$$
+X_i \indep X_j | \{X_{k_1}, \dots X_{k_n}\}
+$$
+The list determines the set of probability distributions that can be represented.
 
 We can prove the local Markov property through the **Bayes reconstitution formula**.
 
 The Local Markov property (a variable is conditionally independent of all other variables given its neighbors) is a necessary condition for the Bayesian reconstitution formula.
+
+In the Bayes Net, the less number of arrows you draw, the more assumptions of independence you have to make, the fewer joint probability distributions you can represent, the smaller the size of the node. 
 
 ## Bayes Nets (Inference)
 
@@ -127,15 +135,52 @@ Previously, we perform inference by enumeration to compute probability distribut
 1. Join(multiply together) all factors involving $$X$$.
 2. Sum out $$X$$.
 
+For four variables like below, If we want to calculate $$P(T|+e)$$ by inferencing by enumeration, we should get the joint probability with 16 rows. However, with the Bayes Net, we can eliminate the variables one by one.
+
 
 
 ![Untitled](https://p.ipic.vip/m92gha.jpg)
 
 ## Bayes Nets (Sampling)
 
-An alternate approach for probabilistic reasoning is to implicitly calculate the probabilities for our query by simply counting samples.
+Why sample?
 
-We can write a simple simulator for a Bayes Net Model:
+* Learning: get smaples from a distribution you don't know
+* Inference: getting a sample is faster than computing the right answer
 
-<img src="https://p.ipic.vip/0sz0jo.png" alt="Untitled" style="zoom:50%;" />
+**Sampling in Bayes' Nets**
+
+* Prior Sampling
+
+* Rejection Sampling
+
+* Likehood weighting
+
+* Gibbs Sampling
+
+### Prior Sampling
+
+Basic idea:
+
+* Draw $$N$$ samples from a sampling distribution $$S$$
+* Compute an approximate posterior probability $$\widehat{P}$$
+* Show this converges to the true probaility $$P$$
+
+<img src="https://p.ipic.vip/e0d689.png" alt="Screenshot 2023-05-14 at 9.26.12 PM" style="zoom:50%;" />
+
+```pseudocode
+for i in 1, 2, ..., n
+	sample(xi, P(Xi|Parents(Xi)))
+return (x1,x2,...,xn)
+```
+
+Let $$N_{PS}(x_1,\dots,x_n)$$ be the number of samples generated for event $$x_1,\dots, x_n$$
+$$
+\lim_{N\rightarrow\infin} \widehat{P}(x_1,\dots,x_n) = \lim_{N\rightarrow \infin} {\frac{N_{PS} (x_1,\dots,x_n)}{N}} = S_{PS}(x_1,\dots,x_n) = P(x_1,\dots,x_n)
+$$
+The sampling procedure is consistent.
+
+### Rejection Sampling
+
+Let's say we want $$P(C)$$. There's no point keeping all samples around. We just tally counts of C as we go.
 

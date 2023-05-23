@@ -101,9 +101,9 @@ A **special register** pointing to an area of kernel memory called the interrupt
 
 x86: 0-31 hardware exceptions    32-255 interrupts     entry 64 points to the system call trap handler
 
-**Interrupt stack**
+**Interrupt handler stack**
 
-A **privileged hardware register** pointing to a region of **kernel memory** called the interrupt stack.
+A **privileged hardware register** pointing to a region of **kernel memory** called the interrupt handler stack.
 
 Procedure:
 
@@ -117,7 +117,13 @@ Procedure of returning from the interrupt, exception or trap:
 * pop the registers stored by the handler
 * hardware restore the registers it saved into the interrupt stack
 
-Modern operating system allocates a kernel interrupt stack for every user-level process and user-level thread.
+> **When a system call occurs, the user's register information is saved on the kernel stack.**
+>
+> **When a thread is rescheduled, the user's register information is saved on the user stack.**
+>
+> **When an interrupt or exception occurs, the user's register information is saved on the interrupt handling stack.**
+>
+> **Each thread corresponds to one user stack and one kernel stack, and each processor corresponds to one interrupt handling stack.**
 
 **Interrupt masking**
 

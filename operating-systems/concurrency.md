@@ -100,24 +100,29 @@ When a thread is in the **WAITING** state, rather than continuing to run the thr
 ## Implementing Kernel Threads
 
 * **Kernel threads** The simplest case is implementing threads inside the operating system kernel, sharing one or more physical processors. A _kernel thread_ executes kernel code and modifies kernel data structures. Almost all commercial operating systems today support kernel threads. (e.g., process scheduling, memory management)
+
 *   **Kernel threads and single-threaded processes.** An operating system with kernel threads might also run some single-threaded user processes.
 
-    In this figure, the stack in the kernel is the **user interrupt stack**, while the stack in the process is the **user-level stack**.
-
     <figure><img src="https://p.ipic.vip/3i4w5q.png" alt="" width="375"><figcaption></figcaption></figure>
+
+    Every thread corresponds to a user stack and kernel stack. 
+    
 *   **Multi-threaded processes using kernel threads**
 
     ![](https://p.ipic.vip/xdh0ef.png)
 
     Each thread needs a kernel interrupt stack in the kernel. Here, "in the kernel" means that the data structure is managed and controlled by the kernel of the operating system.
+    
 *   **User-level threads**
 
     The thread operations — create, yield, join, exit, and the synchronization routines is completely controlled by the user.
 
 ### Creating a Thread
 
-<pre class="language-cpp"><code class="lang-cpp"><strong>void thread_create(thread_t *thread, void (*func)(int), int arg) {
-</strong>    // Allocate TCB and stack
+
+```c
+void thread_create(thread_t *thread, void (*func)(int), int arg) {
+    // Allocate TCB and stack
     TCB *tcb = new TCB();
     thread->tcb = tcb;
     tcb->stack_size = INITIAL_STACK_SIZE;
@@ -146,8 +151,93 @@ void stub(void (*func)(int), int arg) {
      (*func)(arg);           // Execute the function func()
      thread_exit(0);         // If func() does not call exit,  call it here.
  }
-</code></pre>
-
+```
 When we create a stack, we get the address of the stack. The stack is a continuous memory region from the starting address. We need to get to the top of the stack and the stack grows from higher address to lower address.
 
 Noting the step of calling stub. We need this extra step in case the func procedure returns instead of calling `thread_exit`. Without the stub, func would return to whatever random location is stored at the top of the stack! Instead, func returns to stub and stub calls thread\_exit to finish the thread.
+
+### Deleting a Thread
+
+When a thread calls `thread_exit`,  there are two steps to deleting the thread: 
+
+* Remove the thread from the ready list so that it will never run again. 
+* Free the per-thread state allocated for the thread.
+
+An important subtlety: After the thread remove itself from the ready list, an interrupt occurs before the thread finishes deallocating its memory. **Memory leak**.
+
+A thread never deletes its own state. Some other thread must do it. On exit, the thread transitions to the FINISHED state, moves its TCB from the ready list to a list of finished threads the scheduler should never run. Once the finished thread is no longer running, it is safe for some *other* thread to free the state of the thread.
+
+### Thread Context Switch
+
+The switch saves the currently running thread’s registers to the thread’s TCB and stack, and then it restores the new thread’s registers from that thread’s TCB and stack into the processor.
+
+A thread context switch can be triggered by either a voluntary call into the thread library, or an involuntary interrupt or processor exception.
+
+**Voluntary**
+
+`thread_yield` call lets the currently running thread voluntarily give up processor to the next thread on the ready list.
+
+`thread_join` and `thread_exit`.
+
+**Involuntary**
+
+An interrupt or processor exception could invoke a interrupt handler. The interrupt hardware saves the state of the running thread and executes the handler’s code. The handler can decide that some other thread should run, and then switch to it. Alternatively, if the current thread should continue running, the handler restores the state of the interrupted thread and resumes execution.
+
+For example, **timer interrupt** handler saves the state of the running thread, chooses another thread to run, and runs that thread by restoring its state to the processor. **IO hardware events** also invoke interrupt handlers.
+
+We do not want to do an involuntary context switch while we are in the middle of a voluntary one. When switching between two threads, we need to temporarily defer interrupts until the switch is complete, to avoid confusion. Processors contain privileged instructions to defer and re-enable interrupts; we make use of these in our implementation below.
+
+> **Why it is necessary to turn off interrupts during thread switch**
+>
+> A scenario:
+>
+> * A low priority thread is about to voluntarily switch to a high priority thread. It has pulled the high priority thread off the ready list
+> * An interrupt occurs. A medium priority thread is moved from WAITING to READY
+> * Since it appears that the processor is still running the low priority thread, the interrupt handler immediately switches to the medium thread.
+> * It has to wait the low thread to reschedule to switch from the low priority to high priority
+
+```c
+// We enter as oldThread, but we return as newThread.
+// Returns with newThread’s registers and stack.
+void thread_switch(oldThreadTCB, newThreadTCB) {
+    pushad;                  // Push general register values onto the old stack.
+    oldThreadTCB->sp = %esp; // Save the old thread’s stack pointer.
+    %esp = newThreadTCB->sp; // Switch to the new stack.
+    popad;            // Pop register values from the new stack.
+		return; 
+}
+
+void thread_yield() {
+    TCB *chosenTCB, *finishedTCB;
+    // Prevent an interrupt from stopping us in the middle of a switch.
+    disableInterrupts();
+  	// Choose another TCB from the ready list.
+    chosenTCB = readyList.getNextThread();
+    if (chosenTCB == NULL) {
+      // Nothing else to run, so go back to running the original thread.
+    } else {
+    	// Move running thread onto the ready list.
+    	runningThread->state = ready;
+      readyList.add(runningThread);
+      thread_switch(runningThread, chosenTCB); // Switch to the new thread.
+      runningThread->state = running;
+		}
+     // Delete any threads on the finished list.
+     while ((finishedTCB = finishedList->getNextThread()) != NULL) {
+         delete finishedTCB->stack;
+         delete finishedTCB;
+     }
+     enableInterrupts();
+ }
+
+ // thread_create must put a dummy frame at the top of its stack:
+ // the return PC and space for pushad to have stored a copy of the registers.
+ // This way, when someone switches to a newly created thread,
+ // the last two lines of thread_switch work correctly.
+ void thread_dummySwitchFrame(newThread) {
+     *(tcb->sp) = stub;      // Return to the beginning of stub.
+     tcb->sp--;
+     tcb->sp -= SizeOfPopad;
+}
+```
+
