@@ -196,9 +196,9 @@ The value of `pid` determines the members of the wait set:
 The default behavior can be modified by setting the options:
 
 * `WNOHANG` Return immediately (with a return value of 0) if none of the child processes in the wait set has terminated yet
-* `WUNTRACED` Suspend execution of the calling process until a process in the wait set becomes either terminated or stopped. Return the PID of the terminated or stopped child that caused the return.
+* `WUNTRACED` Suspend execution of the calling process until a process in the wait set becomes **either terminated or stopped**. Return the PID of the terminated or stopped child that caused the return.
 * `WCONTINUED` Suspend execution of the calling process until a running process in the wait set is terminated or until a stopped process in the wait set has been resumed by the receipt of a `SIGCONT` signal.
-* `WNOHANG|WUNTRACED` Return immediately, with a return value of 0, if none of the children in the wait set has stopped or terminated, or wuth a return value equal to the PID of one of the stopped or terminated children.
+* `WNOHANG|WUNTRACED` Return immediately, with a return value of 0, if none of the children in the wait set has stopped or terminated, or with a return value equal to the PID of one of the stopped or terminated children.
 
 The exit status of a reaped child in `*statusp`:
 
@@ -208,7 +208,7 @@ The exit status of a reaped child in `*statusp`:
 * `WTERMSIG(status)` Returns the number of the signal that caused the child process to terminate. This status is only defined if `WIFSIGNALED()` returned true. 
 * `WIFSTOPPED(status)` Returns true if the child that caused the return is currently stopped. 
 * `WSTOPSIG(status)` Returns the number of the signal that caused the child to stop. This status is only defined if `WIFSTOPPED()` returned true. 
-* `WIFCONTINUED(status)` Returns true i the child process was restartedby receipt of a SIGCONT signal.
+* `WIFCONTINUED(status)` Returns true if the child process was restartedby receipt of a SIGCONT signal.
 
 A simpler version of `waitpid`
 
@@ -233,7 +233,32 @@ unsigned int sleep(unsigned int secs);
 // Returns: seconds left to sleep
 ```
 
-Returns zero if the requested amount of time has elapsed, and the number of seconds still left to sleep otherwise. The latter case is possible if the `sleep` function returns prematurely because it was interrupted by a signal.
+Returns zero if the requested amount of time has elapsed, and the number of seconds still left to sleep otherwise. The function returns the number of seconds left unslept if the sleep is interrupted by a signal handler.
+
+```c
+#include <unistd.h>
+#include <stdio.h>
+#include <signal.h>
+
+void signalHandler(int sig) {
+    printf("Signal caught, interrupting sleep\n");
+}
+
+int main() {
+    // set signal handler for SIGALRM
+    signal(SIGALRM, signalHandler);
+
+    printf("Sleeping for 10 seconds...\n");
+    // set an alarm for 3 seconds
+    alarm(3);
+    unsigned int unslept = sleep(10);
+    printf("Woke up!\n");
+    if (unslept > 0)
+        printf("Sleep was interrupted with %u seconds left\n", unslept);
+
+    return 0;
+}
+```
 
 ### Loading and Running Programs
 
@@ -252,15 +277,15 @@ int execve(const char *filename, const char *argv[], const char *envp[]);
 
 char *getenv(const char *name);
 
-//Returns: pointer to name if it exists, NULL if no match
+// Returns: pointer to name if it exists, NULL if no match
 
 int setenv(const char *name, char *newvalue, int overwrite);
 
-//Returns: 0 on success, -1 on error
+// Returns: 0 on success, -1 on error
 
 void unsetenv(const char *name);
 
-//Returns: nothing
+// Returns: nothing
 ```
 
 ## Dual-mode operation
@@ -281,9 +306,9 @@ Process isolation is only possible if there is a way to **limit programs running
 
 Other than trapping into the system kernel at the system call locations, an application process **cannot be allowed to change its privilege level**.
 
-**cannot be allowed to change the set of memory locations it can access**
+**Cannot be allowed to change the set of memory locations it can access**
 
-**cannot disable processor interrupts**
+**Cannot disable processor interrupts**
 
 **Privileged instructions:** avaliable only in kernel-mode
 
@@ -322,16 +347,18 @@ After resetting the timer, the operating system will resume execution of the pro
 
 Three reasons for transferring from user-mode to kernel-mode:
 
-* **Exceptions catched** can be used to set breakpoints
+* **Exceptions catched** 
+
+  Can be used to set breakpoints
+
 *   **Interrupts arrived**
 
-    **Hardware Interrupt**
-
-    timer events/ the completion of I/O requests
+    **Hardware Interrupt**: timer events/ the completion of I/O requests
 
     An alternative to interrupts: polling. The kernel loop and check if an event has occured and is needed to be handled
 
     **Interprocessor interrupts**: coorindate actions across the multiprocessor
+
 *   System calls
 
     Most processors implement system calls using a special trap instruction.
@@ -352,7 +379,7 @@ A common sequence for entering the kernel and returning from the kernel
 
 **Interrupt vector**
 
-A **special register** pointing to an area of kernel memory called the interrupt vector. The interrupt vector is an array of pointers, with each pointer pointing to the first instruction of a handler procedure.
+A **special register** pointing to **an area of kernel memory** called the interrupt vector. The interrupt vector is an array of pointers, with each pointer pointing to the first instruction of a handler procedure.
 
 x86: 0-31 hardware exceptions    32-255 interrupts     entry 64 points to the system call trap handler
 
@@ -376,16 +403,14 @@ Procedure of returning from the interrupt, exception or trap:
 >
 > When a thread is rescheduled, the user's register information is saved on the **user stack**.
 >
-> When a ***hardware*** interrupt is triggered, the user's register information is saved on the **interrupt handling stack**.
+> When a ***hardware*** interrupt is triggered, the user's register information is saved on the **interrupt handler stack**.
 >
-> When an interrupt or exception occurs, the user's register information is saved **on the interrupt handling stack**.
+> When an interrupt or exception occurs, the user's register information is saved **on the interrupt handler stack**.
 >
 > Each thread corresponds to one user stack and one kernel stack, and each processor corresponds to one interrupt handling stack.
 >
-> This applies to Linux X86 and X86_64
->
-> ----
->
+> This applies to Linux x86 and x86_64
+
 > Linux has a per-process kernel stack that is used for system calls, exceptions, and other kernel-level operations. However, when it comes to handling hardware interrupts, Linux uses a single, per-processor interrupt stack.
 
 **Interrupt masking**
@@ -396,17 +421,11 @@ The hardware provides a privileged instruction to temporarily defer delivery of 
 
 **Hardware support for saving and restoring registers**
 
-When a context switch occurs the x86 hardware:
-
-* If in user-mode, pushes the interrupted process’s stack pointer onto the **kernel’s interrupt stack**. Then the stack pointer is pointed to the **kernel's exception stack**.
-* Pushes the interrupted process’s instruction pointer onto the **kernel's interrupt stack**.
-* Pushes the x86 _processor status word_ onto the **kernel's interrupt stack**.
-
 Once the handler starts running, it can use the `pushad` instruction to save the remaining registers onto the stack.
 
-`pushad`saves the x86 integer registers; because the kernel does not typically do ﬂoating point operations, those do not need to be saved unless the kernel switches to a new process.
+`pushad` saves the x86 integer registers; because the kernel does not typically do ﬂoating point operations, those do not need to be saved unless the kernel switches to a new process.
 
-`popad`pop an array of integer register values off the stack into the registers
+`popad ` pop an array of integer register values off the stack into the registers
 
 `iret` instruction that loads a stack pointer, instruction pointer and processor status word off the stack into the appropriate processor registers.
 
@@ -416,25 +435,29 @@ The x86 is segmented. Pointers come in 2 parts: a segment, such as code, data or
 
 The current user-level instruction is based on a combination of the code segment(`cs` register plus the instruction pointer `eip`)
 
+> 1. **Code Segment (CS)**: This segment contains the actual executable code of the program.
+> 2. **Data Segment (DS)**: This segment contains static data such as global variables.
+> 3. **Stack Segment (SS)**: This segment contains the program's execution stack, which includes local variables and function call information.
+> 4. **Extra Segment (ES)**: This segment is generally used for extra data and is sometimes used by certain instructions that need to access data in a different segment.
+> 5. **FS, GS**: Additional segments that can be used for various purposes depending on the specific needs of a program.
+
 The current stack position is based on the stack segment `ss` and the stack pointer within the stack segment `esp`.
 
 1. Save three key values. The hardware **internally** saves the value of the stack pointer (the x86 `esp` and `ss` registers), the execution ﬂags (the x86 `eflags` register), and the instruction pointer (the x86 `eip` and `cs` registers).
-2. Switch onto the kernel exception stack. The hardware then switches the stack pointer to the base of the kernel exception stack, speciﬁed in a special hardware register.
+2. Switch onto the interrupt handler stack. The hardware then switches the stack pointer to the base of the kernel handler stack. The hardware switches to a new stack if the Interrupt Stack Table (IST) feature is used. The new stack's address is found in the IST, which is a part of the Task State Segment (TSS).
 3. Push the three key values onto the new stack. The hardware then stores the internally saved values onto the stack.
 4. Optionally save error code. Certain types of exceptions such as page faults **generate an error code** to provide more information about the event; for these exceptions, the hardware pushes this code as the last item on the stack. For other types of events, the software interrupt handler typically pushes a dummy value onto the stack so that the stack format is identical in both cases.
 5. Invoke the interrupt handler. Finally, the hardware changes the program counter to the address of the interrupt handler procedure, speciﬁed via a special register in the processor that is accessible only to the kernel. This register contains a pointer to an array of exception handler addresses in memory. The type of interrupt is mapped to an index in this array, and the program counter is set to the value at this index.
 
 In the interrupt handler process, `pushad` pushes the rest of the registers, **including the current stack pointer**, onto the stack. x86 `pushad` pushes the contents of all general purpose registers onto the stack.
 
-At this point the kernel’s exception stack holds
+At this point the kernel’s interrupt handler stack holds
 
 1. the stack pointer, execution ﬂags, and program counter saved by the hardware
 2. an error code or dummy value
 3. a copy of all of the general registers (including the stack pointer but not the instruction pointer or eﬂags register)
 
-To prevent an inﬁnite loop, the exception handler modiﬁes the program counter stored at the base on the stack to point to the instruction immediately after the one causing the mode switch.
-
-The program counter for the instruction after the trap is saved on the kernel’s interrupt stack.
+To prevent an inﬁnite loop, the handler modiﬁes the program counter stored at the base on the stack to point to the instruction immediately after the one causing the mode switch.
 
 ### System calls
 
@@ -444,19 +467,20 @@ Issue a system call by **executing the trap instruction** to transfer control to
 
 To issue a system call:
 
-| X86    | int     |
-| ------ | ------- |
-| X86-64 | syscall |
+| Architecture | Method  |
+| ------------ | ------- |
+| x86          | int     |
+| x86-64       | syscall |
 
 The system call handler will implement each system call. It runs in kernel mode. When a system call is made, the arguments of it should be carefully validated by the system call handler.
 
 A pair of stubs are two short procedures that mediate between two environments, in this case between the user program and the kernel.
 
-![Untitled](https://p.ipic.vip/3c1k6z.png)
+![Screenshot 2023-05-24 at 7.22.07 PM](https://p.ipic.vip/kfuqa8.png)
 
 The syscall function takes care of marshalling the arguments passed by the user program into a format that can be understood by the system call handler, and handles any necessary validation of the arguments.
 
-**X86** The system call calling convention is arbitrary, so here we pass arguments on the user stack, with a code indicating the type of system call in the register `%eax`. The return value comes back in `%eax` so there is no work to do on the return.
+**x86** The system call calling convention is arbitrary, so here we pass arguments on the user stack, with a code indicating the type of system call in the register `%eax`. The return value comes back in `%eax` so there is no work to do on the return.
 
 The kernel stub has four tasks:
 
@@ -465,7 +489,7 @@ The kernel stub has four tasks:
 * **Copy before check:** the kernel copies system call parameters into kernel memory before performing the necessary checks.
 * **Copy back any results**
 
-In turn, the system call handler pops any saved registers (except %eax) and uses the iret instruction to return back to the user stub immediately after the trap, allowing the user stub to return to the user program.
+In turn, the system call handler pops any saved registers (except `%eax`) and uses the `iret` instruction to return back to the user stub immediately after the trap, allowing the user stub to return to the user program.
 
 ### Staring a new process
 
@@ -491,7 +515,7 @@ A UNIX signal handler automatically masks further delivery of that type of signa
 
 When the timer interrupt occurs, the hardware generates an interrupt request(IRQ) signal to the processor, which causes the processor to switch from user mode to kernel mode.
 
-The kernel interrupt handler saves the current state of the user-level computation onto the kernel stack.
+The kernel interrupt handler saves the current state of the user-level computation onto the kernel interrupt handler stack.
 
 The kernel then copies the saved state from the kernel stack to a **user-level buffer**, which is a special area of memory reserved for handling signals and interrupts. This buffer contains the saved state of the user-level program that was interrupted by the timer interrupt.
 
@@ -504,6 +528,537 @@ When the signal handler has finished executing, it returns control to the kernel
 The kernel copies the processor state from the signal handler back into kernel memory.
 
 The kernel then returns to the interrupted user-level program, using the saved state from the user-level buffer to restore the program's original state.
+
+## Singals
+
+![Untitled](https://p.ipic.vip/ycf4ng.jpg)
+
+A signal is a small message that notifies a process that an event of some type has occured in the system.
+
+Singals provide an mechanism for exposing the occurence of some hardware exceptions to user processes.
+
+### Singal Terminology
+
+**Sending a signal**
+
+The kernel sends a signal to a destination process by updating some state in the context of the destination process.
+
+The signal is delivered for 2 reasons:
+
+* The kernel has detected a system event such as divide-by-zero or the termination of a child process
+* A process has invoked the kill function to explicitly **reuquest the kernel to send a signal** to the signal to the destination process. A process can send a signal to itself.
+
+**Receiving the signal**
+
+A destination process receives a signal when it is forced by the kernel to react in some way to the delivery of the signal. The process can either ignore the signal, terminate or catch the signal by executing a user-level function called a signal handler.
+
+A signal that has been sent but not yet received is called a pending signal. At any point in time, there can be **at most one** pending signal of a particular type for a. If a process has a pending signal of type _k_, then any subsequent signals of type _k_ sent to that process are not required; they are simply discarded.
+
+A pending signal is received at most once. **For each process**, th kernel maintains the set of pending signals in the `pending` bit vector( but the `pending` bit vector is not stored in PCB! ), and the set of blocked signals in the `blocked` bit vector. The kernel sets bit _k_ in `pending` whenever a signal of type _k_ is delivered and clears it whenever it is received.
+
+### Sending Signals
+
+**Process Groups**
+
+Every process belongs to exactly one process group, which is identified by a positive integer **process group ID.** The `getpgrp` function returns the process group ID of the current process.
+
+```java
+#include <unistd.h>
+
+pid_t getpgrp(void);
+```
+
+By default, a child process belongs to the same process group as its parent. A process can change the process group of itself or another process by using the `setpgid` function.
+
+```java
+#inlcude <unistd.h>
+
+int setpgid(pid_t pid, pid_t pgid);
+
+//Returns 0 on success, -1 on error
+```
+
+If pid is `0`, the PID of the current process is used.
+
+If pgid is `0`, the PID of the process specified by pid is used for the process group ID.
+
+**Sending Signals with the `/bin/kill` Program**
+
+```java
+/bin/kill -9 15213
+```
+
+Send signal 9 to the process `15213`. If the process ID is negative, the signal is sent to be sent to every process in process group PID.
+
+**Sending Signals from the Keyboards**
+
+Unix shells use the abstraction of a **job** to represent the processes that are created as a result of evaluating a single command line. At any point in time, there is at most one foreground job and zero or more background jobs.
+
+**The shell creates a separate group for each job.** Typically, the process group ID is taken from one of the parent processes in the job.
+
+CMD+C: send a `SIGINT` signal to every process in the foreground process group.
+
+CMD+Z: send a `SIGTSTP` signal to every process in the foreground process group.
+
+**Sending Signals with the `kill` Function**
+
+Processes send signals to other processes (including themselves) by calling the `kill` function.
+
+```java
+#include <sys/types.h>
+#include <signal.h>
+
+int kill(pid_t pid, int sig);
+```
+
+If the pid is equal to 0, then `kill` sends signal to every process in the process group of the calling process, including the calling prcess itself. If pid is negative, then `kill` sends signal to every process in process group `|pid|`
+
+![Untitled](https://p.ipic.vip/3gvr0s.jpg)
+
+**Sending Signals with the `alarm` Function**
+
+A process can send SIGALRM signals to itself by calling the `alarm` function.
+
+```java
+#include <unistd.h>
+
+unsigned int alarm(unsigend int secs);
+
+//Returns: remaining seconds of previous alarm, or 0 if no previous alarm
+```
+
+In any event, the call to `alarm` cancels any pending alarms and returns the number of seconds remaining until any pending alarm was due to be delivered(had not this call to `alarm` canceled it), or 0 if there were no pending alarms.
+
+### Receiving Signals
+
+When the kernel switches a process p from kernel mode to user mode, it checks the set of unblocked pending signals (`pending&~blocked`) for p.
+
+If the set is empty, then the kernel passes control to the next instruction in the logical control flow of p.
+
+If the set is nonempty, then the kernel chooses some signal k in the set(typically the smallest k) and forces p to receive signal k.
+
+The receipt of the signal triggers some action by the process. Once the process completes the action, then control passes back to the next instruction in the logical control flow of p. Each signal type has a predefined default action, which is one of the following:
+
+* The process terminates
+* The process terminates and dumps core
+* The process stops until restarted by a `SIGCONT` signal
+* The process ignores the signal
+
+A process can modify the default action associated with a signal by using the `signal` function. The only exceptions are `SIGSTOP` and `SIGKILL`, whose default actions cannot be changed.
+
+```java
+#include <signal.h>
+
+typedef void (*sighandler)(int);
+
+sighandler_t signal(int signum, sighandler_t handler);
+
+//Returns: pointer to previous handler if OK, SIG_ERR on error(does not set errno)
+```
+
+The `signal` functioncan change the action associated with a signal `signum` in one of three ways:
+
+* If `handler` is `SIG_IGN`, then signals of type `signum` are ignored
+* If `handler` is `SIG_DFL`, then the action of signals of type `signum` reverts to the default action
+* Otherwise, `handler` is the address of a user-defined function, called a signal handler, that will be called whenever the process receives a signal of type `signum`. Changing the default action by passing the address a handler to the `signal` function is known as **installing the handler.** The invocation of the handler is called **catching the signal.** The execution of the handler is referred to as **handling the signal.**
+
+When a process catches a signal of type _k_, the handler installed for signal _k_ is invoked with a single integer argument set to _k_. **This argument allows the same handler function to catch different types of signals.**
+
+![Untitled](https://p.ipic.vip/1a4uxg.jpg)
+
+### Blocking and Unblocking Signals
+
+**Implicit blocking mechanism**: By default, the kernel blocks any pending signals of the type currently being processed by a handler.
+
+**Explicit blocking mechanism:** Appications can explicitly block and unblock selected signals using the `sigprocamsk` function and its helpers.
+
+```java
+#include <signal.h>
+
+int sigprocmask(int how, const sigset_t *set, sigset_t *oldset);
+int sigemptyset(sigset_t *set);
+int sigfillset(sigset_t *set);
+int sigaddset(sigset_t *set, int signum);
+int sigdelset(sigset_t *set, int signum);
+
+//Returns: 0 if OK, -1 on error
+
+int sigismember(const sigset_t *set, int signum);
+
+//Returns: 1 if remember, 0 if not, -1 on error
+```
+
+The specific behavior depends on the value of `how`:
+
+* SIG\_BLOCK. Add the signals in `set` to blocked (`blocked = blocked | set`).
+* SIG\_UNBLOCK. `blocked = blocked & ~set`.
+* SIG\_SETMASK. `blocked = set`.
+
+If `oldset`is non-NULL, the previous value of the `blocked` bit vector is stored in `oldset`.
+
+### Writing Signal Handlers
+
+**Safe Signal Handling**
+
+The signal handlers run concurrently with the main program. If they try to access teh same global data structure concurrently,the results can be unpredictable.
+
+Guidelines:
+
+* Keep handlers as simple as possible
+
+* Call only **async-signal-safe (or simple “safe”)** functions in your handlers
+
+  i.e. can be safely called from a signal handler.
+
+  Either it is _reentrant_ (e.g. accesses only local variables)
+
+  Or because it cannot be interrupted by a signal handler.
+
+  **Example 1: Not reentrant**
+
+  Here's the signal handler:
+
+  ```c
+  volatile sig_atomic_t count = 0;
+  
+  void handler(int signum) {
+      ++count;
+      printf("Signal caught %d time(s)\n", count);
+  }
+  ```
+
+  If 2 signals arrive at nearly the same time, two handlers may run concurrently. We increment the count to 1. Before we can printf the count, the count is incremented by another handler to 2. Here is the race condition. To solve this:
+
+  ```c
+  volatile sig_atomic_t count = 0;
+  pthread_mutex_t count_mutex = PTHREAD_MUTEX_INITIALIZER;
+  
+  void handler(int signum) {
+      pthread_mutex_lock(&count_mutex);
+      ++count;
+      printf("Signal caught %d time(s)\n", count);
+      pthread_mutex_unlock(&count_mutex);
+  }
+  ```
+
+  **Example 2: Can be interrupted**
+
+  ```c
+  void allocate_memory() {
+      char* buffer = malloc(1024);
+      // do something with buffer
+      free(buffer);
+  }
+  ```
+
+  The ONLY safe way to generate output from a signal handler is to use the `write` function. Calling `printf` or `sprintf` is unsafe.
+
+  ![Untitled](https://p.ipic.vip/th5z4d.png)
+
+* Save and restore `errno`.
+
+  Many of the Linux async-signal-safe functions ser `errno` when they return with an error. Calling such functions inside a handler might interfere with other parts of the program that rely on `errno`.
+
+  Workaround: save `errno` to a local variable on entry to the handler can restore it before the handler returns. It’s not necessary if the handler terminates the process by calling `_exit`.
+
+* Protecting accesses to shared global data structures by blocking all signals.
+
+  If sharing a global data structure, then the handlers and main program should temporarily block all signals when accessing(reading or writing) that data structure.
+
+* Declare global variables with `volatile`
+
+  To an optimizing compiler, the compiler will cache a global variable in register. Using `volatile` will force the compiler to read the value from memory each time it is referenced in the code.
+
+  Since threads run asynchronously, any update of global variables due to one thread should be fetched freshly by the other consumer thread.
+
+* Declare flags with `sig_atomic_t`
+
+  In one common handler design, the handler records the receipt of the signal by writing to a global **flag**. The main program periodically reads the **flag**, responding to the signal, and clears the flag.
+
+  For flags shared in this way, we declare it in the way which reads and writes are guaranteed to be atomic (uninterruptible) because they can be implemented with a single instruction:
+
+  ```java
+  volatile sig_atomic_t flag;
+  ```
+
+  ```c
+  #include <signal.h>
+  #include <stdio.h>
+  #include <stdlib.h>
+  
+  sig_atomic_t sig_received = 0;
+  
+  void sig_handler(int sig)
+  {
+      sig_received = 1;
+  }
+  
+  int main()
+  {
+      signal(SIGINT, sig_handler);
+  
+      while (1) {
+          if (sig_received) {
+              printf("Signal received!\n");
+              sig_received = 0;
+          }
+      }
+  
+      return 0;
+  }
+  ```
+
+**Correct Signal Handling**
+
+The key ides is that the existence of a pending signal merely indicates that _**at least**_ one signal has arrived.
+
+The parent installs a SIGCHLD handler and then creates **three** children. In the meantime, the parent waits for a line of input from the terminal and then process it.
+
+```c
+void handler1(int sig){
+	int olderrno = errno;
+	if((waitpid(-1, NULL, O)) < 0)
+		sio_error("waitpid error");
+	Sio_puts("Handler reaped child\n")
+	Sleep(1);
+	errno = olderrno;
+}
+```
+
+```c
+void handler2(int sig){
+	int olderrno = errno;
+
+	//waitpid can block the loop
+	while(waitpid(-1, NULL, 0) > 0){
+		Sio_puts("Handler reaped child\n")
+	}
+
+	if(errno != ECHILD)
+		Sio_error("waitpid error");
+	Sleep(1);
+	errno = olderrno;
+}
+```
+
+**Portable Signal Handling**
+
+Different systems have different signal-handling semantics. For example:
+
+* Some older Unix systems restore the action for signed k to its default after signal k has been caught by a handler. The handler should be reinstalled.
+* On some older versions of Unix, slow system calls that are interrupted when a handler catches a signal do not resume when the signal handler returns but instead return immediately to the user with an error condition and `errno` set to $\tiny{EINTR}$. On these systems, programmers must include code that manually restarts interrupted sysetm calls.
+
+The Posix standard defines the `sigaction` function, which allows users to clearly speicfy the signal-handling semantics they want when they install a handler.
+
+```c
+#include <signal.h>
+
+int sigaction(int signum, struct sigaction *act, struct sigaction *oldact);
+```
+
+The function is unwieldy. A wrapper function `Signal` is introduced:
+
+```c
+handler_t *Signal(int signum, handler_t *handler){
+	struct sigaction action, old_action;
+
+	action.sa_handler = handler;
+	// Block sigs of type being handled
+	sigemptyset(&action.sa_mask); 
+	// Restart syscalls if possible
+	action.sa_flags = SA_RESTART;
+	
+	if(sigaction(signum, &action, &old_action) < 0)
+		unix_error("Signal error");
+	return(old_action.sa_handler);
+}
+```
+
+Once the signal handler is installed, it remains installed until Signal is called with a handler argument of either `SIG_IGN` or `SIG_DFL`.
+
+### Synchronizing Flows to Avoid Nasty Concurrency Bugs
+
+```c
+void handler(int sig) {
+  int olderrno = errno;
+  sigset_t mask_all, prev_all;
+  pid_t pid;
+  
+  Sigfillset(&mask_all);
+  while((pid = waitpid(-1, NULL, 0)) > 0) {
+    Sigprocmask(SIG_BLOCK, &mask_all, &prev_all);
+    deletejob(pid);
+    Sigprocmask(SIG_SETMASK, &prev_all, NULL);
+  }
+  if(errno != ECHILD)
+    Sio_error("waitpid error");
+  errno = olderrno;
+}
+```
+
+```C
+int main(int argc, char **argv) {
+  int pid;
+  sigset_t mask_all, prev_all;
+  
+  Sigfillset(&mask_all);
+  Signal(SIGCHLD, handler);
+  initjobs();
+  
+  while(1) {
+    if((pid = Fork()) == 0) {
+      Execve("/bin/date", argv, NULL);
+    }
+    Sigprocmask(SIG_BLOCK, &mask_all, &prev_all);
+    addjob(pid);
+    Sigprocmask(SIG_SETMASK, &prev_all, NULL);
+  }
+  exit(0);
+}
+```
+
+Chances are that a race condition may happen:
+
+After the `fork` function the newly created child is instantly scheduled. The child terminates and call `deletejob`. But the job haven't been added!
+
+By blocking `SIGCHLD` signals before the call to fork and then unblocking them only after we have called `addjob`, we guarantee that the child will be reaped _after_ it is added to the job list. Notice that children inherit the blocked set of their parents, so we must be careful to unblock the `SIGCHLD` signal in the child before calling `execve`.
+
+### Explicitly Waiting for Signals
+
+Sometimes we need to exlicitly wait for a certain signal handler to run. Like the Linux shell wait for the foreground job to terminate and be reaped by the SIGCHLD handler before accepting the next user command.
+
+**Solution 1:**
+
+After creating the child, it resets pid to zero, unblocks SIGCHLD, and then waits in a spin loop for pid to become nonzero. After the child terminates, the handler reaps it and assigns its nonzero PID to the global pid variable. This terminates the spin loop, and the parent continues with additional work before starting the next iteration.
+
+Cost: the spin loop is wasteful of processor resources
+
+**Solution 2:**
+
+```c
+while(!pid)
+  pause();
+```
+
+This aims to solve the problem of spin loop by simply pausing the main routine. A loop is still needed though because the `pause` may be interrupted by `SIGINT` signals. We use `pause` to wait for the `SIGCHLD` signal. If `SIGCHLD` is caught, then the main routine will resume. There's a race condition. If the `SIGCHLD` is received between the condition test and `pause`. Then the main routine wil pause forever.
+
+**Solution 3**:
+
+```c
+while(!pid)
+  Sleep(1);
+```
+
+It won't pause forvever. But it is costly to sleep for 1 second. Also, it's not likely that you find a fesible length of session of sleep.
+
+The proper solution is to use `sigsuspend`.
+
+The `sigsuspend` function temporarily replaces the current blocked set with mask and then suspends the process until the receipt of a signal whose action is either to run a handler or to terminate the process. If the action is to terminate, then the process terminates without returning from sigsuspend. If the action is to run a handler, then sigsuspend returns after the handler returns, restoring the blocked set to its state when `sigsuspend` was called.
+
+Here a example implementation of shell using `sigsuspend`:
+
+```c
+#include "csapp.h"
+
+volatile sig_atomic_t pid;
+
+void sigchld_handler(int s) {
+  int olderrno = errno;
+  pid = Waitpid(-1, NULL, 0);
+  errno = olderrno;
+}
+
+void sigint_handler(int s) {
+  
+}
+
+int main(int argc, char **argv) {
+  sigset_t mask, prev;
+  
+  Signal(SIGCHLD, sigchld_handler);
+  Signal(SIGINT, sigint_handler);
+  Sigemptyset(&mask);
+  Sigaddset(&mask, SIGCHLD);
+  
+  while(1) {
+    Sigprocmask(SIG_BLOCK, &mask, &prev);
+    if(Fork() == 0)
+      exit(0);
+    
+    pid = 0;
+    while(!pid)
+      sigsuspend(&prev);
+    
+    Sigprocmask(SIG_SETMASK, &prev, NULL);
+    
+    printf(".");
+  }
+  
+}
+```
+
+If `SIGCHLD` is handled, then the loop will break.
+
+If `SIGINT` is handled, then the loop will resume.
+
+## Nonlocal Jumps
+
+```c
+#include <setjump.h>
+
+int setjmp(jmp_buf env);
+int sigsetjmp(sigjmp_buf env, int savesigs);
+
+// returns o from setjump, nonzero from longjmps
+
+
+void longjmp(jmp_buf env, int retval);
+void siglongjmp(sigjmp_buf env, int retval);
+
+//never returns
+```
+
+The `setjmp` function saves the current _calling environment_ in the env buffer, for later use by longjmp, and returns 0. The calling environment includes the program counter, stack pointer, and general-purpose registers.
+
+The `longjmp` function restores the calling environment from the env buffer and then triggers a return from the most recent `setjmp` call that initialized `env`. The `setjmp` then returns with the nonzero return value retval.
+
+An important application of nonlocal jumps is to permit an immediate return from a deeply nested function call, usually as a result of detecting some error condition.
+
+The `longjump` call to jump from the nested function calls can skip some deallocation of dynamcially allocated memory, thus causing memory leak.
+
+The `sigsetjmp` and `siglongjmp` functions are versions of setjmp and longjmp that can be used by signal handlers.
+
+Another important application of nonlocal jumps is to branch out of a signal handler to a specific code location, rather than returning to the instruction that was interrupted by the arrival of the signal.
+
+**Example: A soft restart**
+
+```c
+#include "csapp.h"
+
+sigjmp_buf buf;
+
+void handler(int sig) {
+  siglongjmp(buf, 1);
+}
+
+int main() {
+  if(!sigsetjmp(buf, 1)) {
+    Signal(SIGINT, handler);
+    Sio_puts("starting\n");
+  } else
+    Sio_puts("restarting\n");
+  
+  while(1) {
+    Sleep(1);
+    Sio_puts("processing...\n");
+  }
+  exit(0);
+}
+```
+
+To avoid a race, we must install the handler _after_ we call `sigsetjmp`. If not, we would run the risk of the handler running before the initial call to `sigsetjmp` sets up the calling environment for `siglongjmp`.
+
+The `sigsetjmp` and `siglongjmp` functions are not on the list of async-signal-safe functions. The reason is that in general `siglongjmp` can jump into arbitrary code, so we must be careful to call only safe functions in any code reachable from a `siglongjmp`. In our example, we call the safe `sio_puts` and `sleep` functions. The unsafe `exit` function is unreachable.
 
 ## Case Study: Booting an operating system kernel
 
