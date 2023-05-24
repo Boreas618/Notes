@@ -1,12 +1,267 @@
-# Kernels and Processes
+# Exceptions, Kernels and Processes
 
 A central role of operating system: protection
 
-## The process concept
+The control flow of the processor: Each transition from one address of a certain instruciton to another address of instruction is called **flow of control**, or **control flow** of the processor.
 
-The operating system keeps track of the various processes on the computer using a data structure called the **process control block.** The process control block stores all the information the operating system needs about a particular process: where it is stored in memory, where its executable image is on disk, which user asked it to start executing, what privileges the process has, and so forth.
+Applications request services from the operating system by using a form of ECF known as a **trap** or **system call**.
 
-**Each thread of a multi-thread program have its own stack and PC.** They do **share the data** and code from the process. Because they share the data, race conditions may happen from time to time. Mutex is used for thread synchronization. It ensures that only one thread has access to a critical section or data by using operations like a lock and unlock. A thread having the lock of mutex can use the critical section while other threads must wait till the lock is released. (This will be covered later) 
+## Exceptions
+
+An **exception** is an abrupt change in the control flow in response to some change in the processor’s state.
+
+Processor’s state: encoded in various bits and signals inside the processor. The change in state is known as an **event**.
+
+Change of processor’s state is triggered by events.
+
+In the case, when the processor detects that the event has occured, it makes an indirect procedure call(the exception), through a jump table called an **exception** **table**, to an operating system subroutine(the **exception hanlder**) that is specially designed to process this particular kind of event. When the exception handler finishes processing, one of three things happens, depending on the type of event that caused the exception:
+
+* returns to $I\_{curr}$
+* returns to $I\_{next}$
+* Aborts the interrupted program
+
+### Exception Handling
+
+Exceptions denoted with **exception number**s. Assigned by processor or kernel.
+
+At system boot time, the operating system allocates and initializes a jump table called an exception table.
+
+The exception number is an index into the exception table, whose starting address is contained in a special CPU register called the **exception table base register**.
+
+When control is being transfered from a user program to the kernel, all of these items are pushed onto the kernel stack rather than onto the user’s stack(The difference between kernel stack adn user stack is explained later on).
+
+After the handler has processed the event, it optionally returns to the interrupted program by executing a special “return from interrupt” instruction.
+
+### Classes of Exceptions
+
+| Class     | Cause                           | Async/sync | Return behavior           |
+| --------- | ------------------------------- | ---------- | ------------------------- |
+| Interrupt | Signal from I/O device / Signal | Async      | Next instruction          |
+| Trap      | Intentional exception           | Sync       | Next instruction          |
+| Fault     | Potentially recoverable error   | Sync       | Might current instruction |
+| Abort     | Nonrecoverable error            | Sync       | Never returns             |
+
+**Interrupts**
+
+Occur asynchronously as a result of signals from I/O devices that are external to the processor.
+
+I/O devices such as network adapters, disk controllers, and timer chips trigger interrupts by signaling a pin on the processor chip and placing onto the system bus the exception number that identifies the device that caused the interrupt.
+
+**After the current instruction finishes executing**, the processor notices that the interrupt pin has gone high, reads the exception number from the system bus, and then calls the appropriate interrupt handler.
+
+Apart from interrupts, all the other interrupts occur synchronously as result of executing the current instruction, like `syscall`.
+
+**Traps and System calls**
+
+Traps provide a procedure-like interface between user program and the kernel, known as system call.
+
+`syscall n` Executing `syscall` instruction causes a trap to an exception handler that decodes the argument and calls the appropriate kernel routine.
+
+**Faults**
+
+If the handler is able to correct the error condition, it returns control to the faulting instruction, thereby re-executing it. Otherwise, the handler returns to an `abort`routine in the kernel that terminates the application program that caused the fault.
+
+**Aborts**
+
+Aborts result from unrecoverable fatal errors.
+
+### Exceptions in Linux/x86-64 Systems
+
+| Exception number | Description              | Exception class   |
+| ---------------- | ------------------------ | ----------------- |
+| 0                | Divide error             | Fault             |
+| 13               | General protection fault | Fault             |
+| 14               | Page fault               | Fault             |
+| 18               | Machine check            | Abort             |
+| 32-255           | OS-defined exceptions    | Interrupt or trap |
+
+Numbers in the range from 0 to 31 is defined by Intel architecture and thus are identical to any x86-64 system.
+
+![Untitled](https://p.ipic.vip/dythmj.jpg)
+
+All arguments to Linux system calls are passed through general purpose registers rather than the stack. By convention, `%rax`contains the syscall number, with up to six arguments in `%rdi`,`%rsi`,`%rdx`, `%r10`,`%r8` and `%r9`. On return from the system, registers `%r11`and `%rcx`are destroyed, and `%rax` contains the return value. A negative return value between -4095 and -1 indicates an error corresponding to negative `errno`.
+
+## System Call Error Handling
+
+When Unix-like systems' system-level functions encounter an error, they typically return $-1$ and set the global integer variable `errno` to indicate what went wrong.
+
+Example for error checking:
+
+```c
+if((pid = fork()) < 0) {
+	fprintf(stderr, "fork error: %s\n", sterror(errno));
+	exit(0);
+}
+```
+
+The `strerror` function returns a text string that describes the error associated with a particular value of `errno`.
+
+error-handling wrapper:
+
+```c
+pid_t Fork(void){
+	pid_t pid;
+
+	if((pid = fork()) < 0)
+		unix_error("Fork error");
+	return pid;
+}
+```
+
+## Process
+
+A process is an instance of program in execution.
+
+What happens when we run a program in shell: A process is created and the executable object file runs in this context.
+
+The operating system keeps track of the various processes on the computer using a data structure called the **process control block(PCB).** The process control block stores all the information the operating system needs about a particular process: where it is stored in memory, where its executable image is on disk, which user asked it to start executing, what privileges the process has, and so forth.
+
+The private address space for a process is like:
+![Untitled](https://p.ipic.vip/hxsui1.jpg)
+
+> In Intel processors, the privilege level of a process is stored in a field within the Code Segment (CS) register. This field is known as the Current Privilege Level (CPL).
+>
+> The CPL can have four levels of privilege from 0 to 3, with level 0 being the most privileged and level 3 being the least. Typically, the kernel code runs at privilege level 0 (known as Ring 0), and user applications run at privilege level 3 (Ring 3).
+>
+> When a user-level process executes a system call, it triggers a transition from Ring 3 to Ring 0. The processor automatically changes the CPL to 0. When the kernel code has finished handling the system call, it executes a special return-from-system-call instruction, and the processor switches the CPL back to 3.
+
+**Each thread of a multi-thread program have its own stack and PC.** They do **share the data(typically global variables)** and code from the process. 
+
+> Because they share the data, race conditions may happen from time to time. Mutex is used for thread synchronization. It ensures that only one thread has access to a critical section or data by using operations like a lock and unlock. A thread having the lock of mutex can use the critical section while other threads must wait till the lock is released. (This will be covered later) 
+
+## Process Control
+
+### Obtaining Process IDs
+
+`getpid` and `getppid`
+
+### Creating and Terminating Processes
+
+A process in three states:
+
+* Running
+
+* Stopped
+
+  The execution of this process is suspended and will not be scheduled. A process stops as a result of receiving a `SIGSTOP`, `SIGTSP`, `SIGTTIN` or `SIGTTOU` signal, and remains stopped until it receives a `SIGCONT` signal, at which point it becomes running again.
+
+* Terminated
+
+  A process become terminated for:
+
+  * Receving a signal whose default action is to terminate the process
+  * Returning from the main routine
+  * Calling the `exit` function
+
+The child gets an identical (but separate) copy of the parent’s user-level virtual address space. The child also gets identical copies of any of the parent’s open file descriptors.
+
+In parent, the `fork()` function returns the pid of the child process.
+
+In child, the `fork()` function returns 0.
+
+The instructions in their logical control flows can be interleaved by the kernel in an arbitrary way.
+
+When the parent calls `fork`, the `stdout` file is open and directed to the screen.
+
+For a program running on a single processor, any **topological sort** of the vertices in the corresponding process graph represents a feasible total ordering of the statements in the program.
+
+### Reaping Child Processes
+
+The child process terminated → It becomes a zombie → reaped by its parent → Cease to exist
+
+The `init` process is the adopted parent of any orphaned children. It has a PID of 1. It is created by the kernel in the system start-up, never terminates.
+
+If a parent terminates without reaping its children, the `init` process is to reap them.
+
+Even though zombies are not running, they still consume system memory resources.
+
+A process waits for its children to terminate or stop by calling the `waitpid` function.
+
+```c
+#include <sys/types.h>
+#include <sys/wait.h>
+
+pid_t waitpid(pid_t pid, int *statusp, int options);
+
+//Returns PID of child if OK, 0 if WNOHANG, -1 if error
+```
+
+By default(`options = 0`) `waitpid` temporarily suspends execution of the calling process until a child process in its wait set terminates. After the function returns, the termianted child has been reaped and the kernel removes all traces of it from system.
+
+The value of `pid` determines the members of the wait set:
+
+* If `pid` > 0, …
+* If `pid` = -1, the wait set contains all of the parent’s child processes.
+
+The default behavior can be modified by setting the options:
+
+* `WNOHANG` Return immediately (with a return value of 0) if none of the child processes in the wait set has terminated yet
+* `WUNTRACED` Suspend execution of the calling process until a process in the wait set becomes either terminated or stopped. Return the PID of the terminated or stopped child that caused the return.
+* `WCONTINUED` Suspend execution of the calling process until a running process in the wait set is terminated or until a stopped process in the wait set has been resumed by the receipt of a `SIGCONT` signal.
+* `WNOHANG|WUNTRACED` Return immediately, with a return value of 0, if none of the children in the wait set has stopped or terminated, or wuth a return value equal to the PID of one of the stopped or terminated children.
+
+The exit status of a reaped child in `*statusp`:
+
+* `WIFEXITED(status)` Returns true if the child terminated normally, via a call to exit or a return. 
+* `WEXITSTATUS(status)` Returns the exit status of a normally terminated child. This status is only defined if `WIFEXITED()`returned true. 
+* `WIFSIGNALED(status)` Returns true if the child process terminated because of a signal that was not caught. 
+* `WTERMSIG(status)` Returns the number of the signal that caused the child process to terminate. This status is only defined if `WIFSIGNALED()` returned true. 
+* `WIFSTOPPED(status)` Returns true if the child that caused the return is currently stopped. 
+* `WSTOPSIG(status)` Returns the number of the signal that caused the child to stop. This status is only defined if `WIFSTOPPED()` returned true. 
+* `WIFCONTINUED(status)` Returns true i the child process was restartedby receipt of a SIGCONT signal.
+
+A simpler version of `waitpid`
+
+```c
+#include <sys/types.h>
+#include <sys/wait.h>
+
+pid_t wait(int *statusp);
+```
+
+The order to reap the child processes is nondeterministic behavior that can make reasoning about concurrency so diffcult.
+
+### Putting Processes to Sleep
+
+The `sleep` function suspends a process for a specified period of time.
+
+```c
+#include <unistd.h>
+
+unsigned int sleep(unsigned int secs);
+
+// Returns: seconds left to sleep
+```
+
+Returns zero if the requested amount of time has elapsed, and the number of seconds still left to sleep otherwise. The latter case is possible if the `sleep` function returns prematurely because it was interrupted by a signal.
+
+### Loading and Running Programs
+
+The `execve` function loads and runs the executable object file `filename` with the argument list `argv` and the environment variable `envp`. `execve` returns to the calling program only there is an error, such as not being able to find `filename`. It is called once and never returns.
+
+```c
+#include <unistd.h>
+
+int execve(const char *filename, const char *argv[], const char *envp[]);
+```
+
+![Untitled](https://p.ipic.vip/w9j5nw.png)
+
+```c
+#include <stdlib.h>
+
+char *getenv(const char *name);
+
+//Returns: pointer to name if it exists, NULL if no match
+
+int setenv(const char *name, char *newvalue, int overwrite);
+
+//Returns: 0 on success, -1 on error
+
+void unsetenv(const char *name);
+
+//Returns: nothing
+```
 
 ## Dual-mode operation
 
@@ -117,13 +372,21 @@ Procedure of returning from the interrupt, exception or trap:
 * pop the registers stored by the handler
 * hardware restore the registers it saved into the interrupt stack
 
-> **When a system call occurs, the user's register information is saved on the kernel stack.**
+> When a system call/software interrupt/exception occurs, the user's register information is saved on the **kernel stack**.
 >
-> **When a thread is rescheduled, the user's register information is saved on the user stack.**
+> When a thread is rescheduled, the user's register information is saved on the **user stack**.
 >
-> **When an interrupt or exception occurs, the user's register information is saved on the interrupt handling stack.**
+> When a ***hardware*** interrupt is triggered, the user's register information is saved on the **interrupt handling stack**.
 >
-> **Each thread corresponds to one user stack and one kernel stack, and each processor corresponds to one interrupt handling stack.**
+> When an interrupt or exception occurs, the user's register information is saved **on the interrupt handling stack**.
+>
+> Each thread corresponds to one user stack and one kernel stack, and each processor corresponds to one interrupt handling stack.
+>
+> This applies to Linux X86 and X86_64
+>
+> ----
+>
+> Linux has a per-process kernel stack that is used for system calls, exceptions, and other kernel-level operations. However, when it comes to handling hardware interrupts, Linux uses a single, per-processor interrupt stack.
 
 **Interrupt masking**
 

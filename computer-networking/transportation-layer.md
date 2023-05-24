@@ -24,7 +24,13 @@ The services that a transport protocol can provide are often constrained by the 
 
 ### Overview of the Transport Layer in the Internet
 
-We temporarily refer to TCP and UDP packets as segments, network packet as datagram.
+We temporarily refer to TCP and UDP packets as **segments**, network packet as **datagram**.
+
+> In real world terminology:
+>
+> - "Packets" are used in the network layer (e.g., IP packets).
+> - "Datagrams" are used in the transport layer for UDP.
+> - "Segments" are used in the transport layer for TCP.
 
 The Internet’s network-layer protocol has a name—IP, for Internet Protocol. IP provides logical communication between hosts. The IP service model is a **best-effort delivery service**. This means that IP makes its “best effort” to deliver segments between communicating hosts, but it makes no guarantees. IP is unreliable. 
 
@@ -33,6 +39,8 @@ Every host has at least one network-layer address, a so-called IP address.
 Extending host-to-host delivery to process-to-process delivery is called **transport-layer multiplexing** and **demultiplexing**. 
 
 The two minimal transport-layer services—process-to-process data delivery and error checking—are the only two services that UDP provides!
+
+> ***UDP can provide error checking!***
 
 TCP provides reliable data transfer through flow control, sequence numbers, acknowledgments, and timers.
 
@@ -46,12 +54,18 @@ The transport layer receives segements fromt the network layer and deliver these
 
 A process can have one or more sockets. The transport layer in the receiving host does not actually deliver data directly to a process, but instead to an intermediary socket.
 
+> A process **can** have one or more sockets
+>
+> A port **can** be shared by several sockets. For example, a connection is identified by the 4-tuple (source_ip, source_port, dest_ip, dest_port) and a server can handle mutiple connections on the same port.
+>
+> In general, a port **cannot** be shared by multiple applications (processes), but it can be done with forking.
+
 Each transport-layer segment has a set of fields to direct incoming transport-layer segements to the appropriate sockets. This job of delivering the data in a transport-layer segment to the correct socket is called **demultiplexing**.
 
-The job of gathering data chunks at the source host from different sockets, encapsulating each data chunk with header information (that will later be used in demultiplexing) to create segments, and passing the segments to the network layer is called **multiplexing**.
+The job of gathering data chunks at the source host from different sockets, encapsulating each data chunk with header information (that will later be used in demultiplexing) to create segments, and **passing the segments** to the network layer is called **multiplexing**.
 
-* Multiplexing: add header information
-* Demultiplexing: parse header information
+* Multiplexing: add header information and pass it to the network layer
+* Demultiplexing: parse header information and pass it the socket
 
 <img src="https://p.ipic.vip/7ru303.png" alt="Screenshot 2023-05-08 at 5.31.21 PM" style="zoom:50%;" />
 
@@ -60,6 +74,7 @@ UDP way of demultiplexing: a segment $$\rightarrow$$ host $$\rightarrow$$ corres
 **Connectionless Mutiplexing and Demultiplexing**
 
 ```Python
+# If you plan to use datagram-based protocol like UDP, you should specify the SOCK_DGRAM option
 clientSocket = socket(AF_INET, SOCK_DGRAM)
 ```
 
@@ -69,13 +84,13 @@ We can associate a specific port number to this UDP socket via the socket `bind(
 clientSocket.bind(('', 19157))
 ```
 
-A UDP socket is fully identified by a two-tuple consisting of a destination IP address and a destination port number.
+**A UDP socket is fully identified by a *two-tuple* consisting of a destination IP address and a destination port number.**
 
-The source port number is needed because the destination needs to send some information back to the source.
+A UDP communication is fully identified by a four-tuple consisting of a source IP address, source port number, destination IP address, and destination port number. The source IP address and port number are needed because the destination may need to send some information back to the source.
 
 **Connection-Oriented Mutiplexing and Demutiplexing**
 
-A TCP socket is identified by a four-tuple: (source IP address, source port number, destination IP address, destination port number)
+A TCP socket is identified by a ***four-tuple***: (source IP address, source port number, destination IP address, destination port number)
 
 In contrast with UDP, two arriving TCP segments with different source IP addresses or source port numbers will (with the exception of a TCP segment carrying the original connection- establishment request) be directed to two different sockets.
 
@@ -84,15 +99,17 @@ In contrast with UDP, two arriving TCP segments with different source IP address
 * The TCP client creates a socket and sends a connection establishment request segement with the lines:
 
   ```python
+  # TCP is a stream-based protocol
   clientSocket = socket(AF_INET, SOCK_STREAM)
   clientSocket.connect((serverName, 12000))
   ```
 
-* A connection-establishment request is nothing more than a TCP segment with destination port number 12000 and a special connection-establishment bit set in the TCP header. The segment also includes a source port number that was chosen by the client.
+* A connection-establishment request is nothing more than a TCP segment with destination port number 12000 and **a special connection-establishment bit** set in the TCP header. **The segment also includes a source port number that was chosen by the client.**
 
 * When the host operating system of the computer running the server process receives the incoming connection-request segment with destination port 12000, it locates the server process that is waiting to accept a connection on port number 12000. The server process then creates a new socket:
 
   ```python
+  # A server socket is created after receving the connection-estabishement request from the client
   connectionSocket, addr = serverSocket.accept()
   ```
 
@@ -107,7 +124,7 @@ They are all based on TCP.
 
 ## Connectionless Transport: UDP
 
-UDP takes messages from the application process, attaches source and destination port number fields for the multiplexing/demultiplexing service, adds two other small fields, and passes the resulting segment to the network layer. The network layer encapsulates the transport-layer segment into an IP datagram and then makes a best-effort attempt to deliver the segment to the receiving host.
+UDP takes messages from the application process, attaches source and destination port number fields for the multiplexing/demultiplexing service, adds two other small fields, and passes the resulting segment( datagram more specificly) to the network layer. The network layer encapsulates the transport-layer segment into an IP datagram(packet more specificly) and then makes a best-effort attempt to deliver the segment to the receiving host.
 
 Why some application developer chooses UDP rather than TCP?
 
@@ -138,8 +155,6 @@ Although UDP provides error checking, it does not do anything to recover from an
 
 Assumption:  packets will be delivered in the order in which they were sent, with some packets possibly being lost; that is, the underlying channel will not reorder packets.
 
-### Reliable Data Transfer over a Channel with Bit Errors
-
 **ARQ(Automatic Repeat reQuest) protocols**: 
 
 Use both **positive acknowledgements** and **negative acknowledgements**. Repeat the message in error.
@@ -160,15 +175,43 @@ Capabilities needed:
 
 <img src="https://p.ipic.vip/1mzrrk.png" alt="Screenshot 2023-05-11 at 2.50.28 PM" style="zoom: 33%;" />
 
-It is important to note that when the sender is in the wait-for-ACK-or-NAK
-
-state, it cannot get more data from the upper layer. This is known as **stop-and-wait** protocols.
+It is important to note that when the sender is in the wait-for-ACK-or-NAK state, it cannot get more data from the upper layer. This is known as **stop-and-wait** protocols.
 
 However, the ACK or NAK can also be corrupted. One solution is to resend the packet when we received a garbled ACK or NAK packet. However, a new issue is introduced in this solution. The receiver of the resented packet doesn't know if the arriving packet contains new data or is a retransmission.
 
 To address this issue, we add the **sequence number** into the packet. For the stop-and-wait protocol, we only need one bit to represent the sequence number. 
 
-![Screenshot 2023-05-11 at 3.08.32 PM](https://p.ipic.vip/346xzp.png)
+<img src="https://p.ipic.vip/346xzp.png" alt="Screenshot 2023-05-11 at 3.08.32 PM" style="zoom:50%;" />
 
-![Screenshot 2023-05-11 at 3.07.55 PM](https://p.ipic.vip/5bzdv1.png)
+<img src="https://p.ipic.vip/5bzdv1.png" alt="Screenshot 2023-05-11 at 3.07.55 PM" style="zoom:67%;" />
 
+Chances are that the underlying channel can lose packets as well, a not-uncommon event in today's computer network. We put the burden of detecting and recovering from lost lost packets on the sender. The sender waits for a certain length of time to decide that a packet has been lost. The sender judiciously choose a time value such that packet loss is likely, although not guaranteed, to have happened. But If a packet experiences a particularly large delay, the sender may retransmit the packet even though neither the data packet nor its ACK have been lost. But rdt2.2 above can already handle this duplicate.
+
+Implementing a time-based retransmission mechanism requires a **countdown timer** that can interrupt the sender after a given amount of time has expired. The sender will thus need to be able to (1) start the timer each time a packet (either a first-time packet or a retransmission) is sent, (2) respond to a timer interrupt (taking appropriate actions), and (3) stop the timer.
+
+<img src="https://p.ipic.vip/tasxuk.png" alt="Screenshot 2023-05-23 at 8.51.50 PM" style="zoom:50%;" />
+
+### Pipelined Reilable Data Transfer Protocols
+
+The issue with the above design of reliable protocol is that it is a **stop-and-wait** protocol. We adopt pipelining to address this issue.
+
+The range of sequence number needs to be increased now. The sender and receiver sides of the protocols may have to buffer more than one packet.
+
+Two pipelined error recovery can be identified: **Go-Back-N** and **selective repeat**
+
+### Go-Back-N
+
+The sender is allowed to transmit multiple packets (when available) without waiting for an acknowledgment, but is constrained to have no more than some maximum allowable number, $N$, of unacknowledged packets in the pipeline.
+
+![Screenshot 2023-05-23 at 9.17.21 PM](https://p.ipic.vip/e13cdw.png)
+
+We define `base` to be the sequence number of the oldest unacknowledged packet and `nextseqnum` to be the smallest unused sequence number.
+
+| Interval                 | Description                   |
+| ------------------------ | ----------------------------- |
+| $[0, base-1]$            | Transmitted and acknowledged  |
+| $[base, nextseqnum-1]$   | Sent but not yet acknowledged |
+| $[nextseqnum, base+N-1]$ | Can be sent                   |
+| $[base+N, \infty]$       | Cannot be used                |
+
+$N$ is referred to as the **window size**. GBN protocol is a **sliding-window protocol**.  

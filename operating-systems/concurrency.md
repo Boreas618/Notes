@@ -183,6 +183,21 @@ A thread context switch can be triggered by either a voluntary call into the thr
 
 An interrupt or processor exception could invoke a interrupt handler. The interrupt hardware saves the state of the running thread and executes the handler’s code. The handler can decide that some other thread should run, and then switch to it. Alternatively, if the current thread should continue running, the handler restores the state of the interrupted thread and resumes execution.
 
+> **What happens when an interrupt or exception happens during the execution of a thread**
+>
+> * The hardware saves some registers information of the thread to the interrupt stack
+>
+> * The interrupt handler takes control
+> * The handler saves the registers **it needs to use** to the kernel stack
+> * The handler does its work
+> * The handler pop some registers back
+> * Hardware restore the registers from the interrupt stack
+>
+> At a minimum, the hardware typically saves:
+>
+> 1. **Program Counter (PC)**: This register contains the memory address of the next instruction to be executed. By saving this, the system knows where to resume execution once the interrupt has been handled.
+> 2. **Processor Status Register (PSR)**: This register contains flags that indicate the status of the processor. For example, it can contain flags to indicate whether the last arithmetic operation resulted in a zero value or caused an overflow. It may also contain flags to indicate the current privilege level of the CPU (user mode or kernel mode), whether interrupts are enabled, etc.
+
 For example, **timer interrupt** handler saves the state of the running thread, chooses another thread to run, and runs that thread by restoring its state to the processor. **IO hardware events** also invoke interrupt handlers.
 
 We do not want to do an involuntary context switch while we are in the middle of a voluntary one. When switching between two threads, we need to temporarily defer interrupts until the switch is complete, to avoid confusion. Processors contain privileged instructions to defer and re-enable interrupts; we make use of these in our implementation below.
@@ -241,3 +256,49 @@ void thread_yield() {
 }
 ```
 
+To facilitate the seamless switching between threads, we set up the newly created thread as if it had already been executing and then voluntarily suspended or yielded its execution.
+
+This means arranging the data on the stack to look as if the thread had been running and then voluntarily yielded control. This setup usually includes the return address where execution should resume (which, in this case, would be the start of the thread's function), and possibly also dummy values for saved register contents.
+
+**Involuntary Kernel Thread Context Switch**
+
+Comparing a switch between kernel threads to what happens on a user-mode transfer:
+
+* There is no need to switch modes (and therefore no need to switch stacks) and
+* The handler can resume any thread on the ready list rather than always resuming the thread or process that was just suspended.
+
+On most processor architectures, a simple (but inefficient) way to swap to the next thread from within an interrupt handler is to call `thread_switch` just before the handler returns. As we have already seen, thread_switch saves the state of the current thread (that is, the state of the interrupt handler) and switches to the new kernel thread. When the original thread resumes, it will return from `thread_switch`, and immediately pop the interrupt context off the stack, resuming execution at the point where it was interrupted. That is, the sequence of execution is $A\rightarrow Handler\rightarrow B \rightarrow A$.
+
+To optimize this, some OSs like Linux imitate the interrupt hardware's fashion of saving context. That's to say, saving return instruction pointer and the `eflags` register first and then calls the `pushad` instruction to save the state of the general-purpose registers. This way, whether a thread was suspended by a hardware interrupt or a software call (like `thread_switch()`), resuming the thread is the same operation.
+
+## Combing Kernel Threads and Single Threaded User Processes
+
+Like a TCB, a PCB for a single-threaded process must store the processor registers when the process’s thread is not running. In addition, the PCB has information about the process’s address space.
+
+An important detail is that many processor architectures have extra co-processor state, e.g., floating registers, for user-level code. Typically, the operating system kernel does not make use of floating point operations. Therefore, the kernel does not need to save those registers when switching between kernel threads, but it does save and restore them when switching between processes.
+
+When switching from user thread to kernel handler (triggered by software interrupt), the IP, eflags and stack pointer are pushed onto the kernel stack.
+
+However, switching between a kernel thread and a kernel handler is slightly different:
+
+**Entering the handler.** When an interrupt or exception occurs, if the processor detects that it is already in kernel mode (by inspecting the eflags register), it just pushes the instruction pointer and eflags registers (but not the stack pointer) onto the existing stack. On the other hand, if the hardware detects that it is switching from user-mode to kernel-mode, then the processor also changes the stack pointer to the base of the interrupt stack and pushes the original stack pointer along with the instruction pointer and eflags registers onto the new stack.
+
+**Returning from the handler.** When the iret instruction is called, it inspects both the current eflags register and the value on the stack that it will use to restore the earlier eflags register. If the mode bit is identical, then iret just pops the instruction pointer and eflags register and continues to use the current stack. On the other hand, if the mode bit differs, then the iret instruction pops not only the instruction pointer and eflags register, but also the saved stack pointer, thus switching the processor’s stack pointer to the saved one.
+
+## Implementing Multi-Threaded Processes
+
+### Implementing Multi-Threaded Processes Using Kernel Threads
+
+User-level threads are abstractions provided by a library in user space (like POSIX threads, or "pthreads") and their scheduling can be managed within the user space. Multiple user-level threads can be multiplexed on a single kernel thread, or they can be implemented with a 1:1 mapping to kernel threads, depending on the threading library and the specific operating system's implementation.
+
+User-level threads still rely on kernel services, such as for creating or destroying threads, or for handling synchronization primitives like mutexes or semaphores. These services are typically accessed by making system calls into the kernel.
+
+To create a thread, the user library allocates a user-level stack for the thread and then does a system call into the kernel. The kernel allocates a TCB and interrupt stack, and arranges the state of the thread to start execution on the user-level stack at the beginning of the requested procedure. The kernel needs to store a pointer to the TCB in the process control block; if the process exits, the kernel must terminate any other threads running in the process.
+
+### Implementing User-Level Threads Without Kernel Support
+
+The basic idea is simple. The thread library instantiates all of its data structures within the process: TCBs, the ready list, the finished list, and the waiting lists all are just data structures in the process’s address space. Then, calls to the thread library are just procedure calls, akin to how the same functions are implemented within a multi-threaded kernel.
+
+A limitation of green threads is that the operating system kernel is unaware of the state of the user-level ready list. If the application performs a system call that blocks waiting for I/O, the kernel is unable to run a different user-level thread. Likewise, on a multiprocessor, the kernel is unable to run the different threads running within a single process on different processors.
+
+You can achieve preemptive user-level threads by means of signals

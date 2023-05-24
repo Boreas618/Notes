@@ -1,274 +1,5 @@
 # Exception Control Flow
 
-The control flow of the processor:
-
-Each transition from one address of a certain instruciton to another address of instruction is called **flow of control**, or **control flow** of the processor.
-
-Applications request services from the operating system by using a form of ECF known as a **trap** or **system call**.
-
-## Exceptions
-
-An **exception** is an abrupt change in the control flow in response to some change in the processor’s state.
-
-Processor’s state: encoded in various bits and signals inside the processor. The change in state is known as an _event_.
-
-Change of processor’s state: event
-
-In the case, when the processor detects that the event has occured, it makes an indirect procedure call(the exception), through a jump table called an **exception** **table**, to an operating system subroutine(the **exception hanlder**) that is specially designed to process this particular kind of event. When the exception handler finishes processing, one of three things happens, depending on the type of event that caused the exception:
-
-* returns to $I\_{curr}$
-* returns to $I\_{next}$
-* Aborts the interrupted program
-
-### Exception Handling
-
-Exceptions denoted with _exception number_s. Assigned by processor or kernel.
-
-At system boot time, the operating system allocates and initializes a jump table called an exception table.
-
-The exception number is an index into the exception table, whose starting address is contained in a special CPU register called the _exception table base register._
-
-When control is being transfered from a user program to the kernel, all of these items are pushed onto the kernel’s stack rather than onto the user’s stack.
-
-After the handler has processed the event, it optionally returns to the interrupted program by executing a special “return from interrupt” instruction.
-
-### Classes of Exceptions
-
-* Interrupts
-* traps
-* faults
-* aborts
-
-![Untitled](https://p.ipic.vip/8bkqob.jpg)
-
-**Interrupts**
-
-Occur asynchronously as a result of signals from I/O devices that are external to the processor.
-
-I/O devices such as network adapters, disk controllers, and timer chips trigger interrupts by signaling a pin on the processor chip and placing onto the system bus the exception number that identifies the device that caused the interrupt.
-
-**After the current instruction finishes executing**, the processor notices that the interrupt pin has gone high, reads the exception number from the system bus, and then calls the appropriate interrupt handler.
-
-Apart from interrupts, all the other interrupts occur synchronously as result of executing the current instruction, like `syscall`.
-
-**Traps and System calls**
-
-Traps provide a procedure-like interface between user program and the kernel, known as system call.
-
-`syscall n` Executing `syscall` instruction causes a trap to an exception handler that decodes the argument and calls the appropriate kernel routine.
-
-**Faults**
-
-If the handler is able to correct the error condition, it returns control to the faulting instruction, thereby re-executing it. Otherwise, the handler returns to an `abort`routine in the kernel that terminates the application program that caused the fault.
-
-**Aborts**
-
-Aborts result from unrecoverable fatal errors.
-
-### Exceptions in Linux/x86-64 Systems
-
-![Untitled](https://p.ipic.vip/iy3me8.jpg)
-
-Numbers in the range from 0 to 31 is defined by intel architecture and thus are identical to any x86-64 system.
-
-![Untitled](https://p.ipic.vip/dythmj.jpg)
-
-All arguments to Linux system calls are passed through general purpose registers rather than the stack. By convention, `%rax`contains the syscall number, with up to six arguments in `%rdi`,`%rsi`,`%rdx`, `%r10`,`%r8` and `%r9`. On return from the system, registers `%r11`and `%rcx`are destroyed, and `%rax` contains the return value. A negative return value between -4095 and -1 indicates an error corresponding to negative `errno`.
-
-## Processes
-
-An instance of a program in execution.
-
-Run program in shell: create a process and run the executable object file in this context.
-
-Key abstractions of concept **process:**
-
-* An independent control flow that provides the illusion that our program has exclusive use of the processor.
-* A private address space that provides the illusion that our program has exclusive use of the memory system.
-
-Serveral processors: execute → preempted→another execute
-
-### Concurrent Flows
-
-A logical flow whose execution overlaps in time with another flow is called a concurrent flow, and the two flows are said to run concurrently.
-
-The general phenomenon of mulitple flows executing concurrently is known as concurrency. The notion of a process taking turns with other processes is also known as multitasking.
-
-If two flows are running concurrently on different processor cores or computers, then we say that they are **parallel flows.** The idea is a subset of concurrent flows.
-
-### Private Address Space
-
-![Untitled](https://p.ipic.vip/hxsui1.jpg)
-
-A mode bit in some control register characterize the privilleges that the process currently enjoys. **kernel mode**
-
-`/proc` file system: allow user mode processes access the concepts of kernel data structures.
-
-`/proc/cpuinfo`
-
-### Context Switches
-
-Preempt the current process and restart a previously preempted process.
-
-Scheduling handled by scheduler.
-
-A context switch can occur while the kernel is executing a system call on behalf of the user. If the system call blocks because it is waiting for some event to occur, then the kernel can put the current process to sleep and switch to another process.
-
-## System Call Error Handling
-
-Unix system-level functions encounter an error, they typically return $-1$ and set the global integer variable `errno` to indicate what went wrong.
-
-Example for error checking:
-
-```c
-if((pid = fork()) < 0) {
-	fprintf(stderr, "fork error: %s\n", sterror(errno));
-	exit(0);
-}
-```
-
-The `strerror` function returns a text string that describes the error associated with a particular value of `errno`.
-
-error-handling wrapper:
-
-```c
-pid_t Fork(void){
-	pid_t pid;
-
-	if((pid = fork()) < 0)
-		unix_error("Fork error");
-	return pid;
-}
-```
-
-## Process Control
-
-### Obtaining Process IDs
-
-`getpid` and `getppid`
-
-### Creating and Terminating Processes
-
-A process in three states:
-
-* Running
-*   Stopped
-
-    The execution of this process is suspended and will not be scheduled. A process stops as a result of receiving a SIGSTOP, SIGTSP, SIGTTIN or SIGTTOU signal, and remains stopped until it receives a SIGCONT signal, at which point it becomes running again.
-*   Terminated
-
-    A process become terminated for:
-
-    * Receving a signal whose default action is to terminate the process
-    * Returning from the main routine
-    * Calling the `exit` function
-
-***
-
-The child gets an identical(but separate) copy of the parent’s user-level virtual address space. The child also gets identical copies of any of the parent’s open file descriptors.
-
-In parent, the `fork()` function returns the pid of the child process.
-
-In child, the `fork()` function returns 0.
-
-The instructions in their logical control flows can be interleaved by the kernel in an arbitrary way.
-
-When the parent calls `fork`, the `stdout` file is open and directed to the screen.
-
-For a program running on a single processor, any **topological sort** of the vertices in the corresponding process graph represents a feasible total ordering of the statements in the program.
-
-### Reaping Child Processes
-
-The child process terminated → It becomes a zombie → reaped by its parent → Cease to exist
-
-The `init` process is the adopted parent of any orphaned children. It has a PID of 1. It is created by the kernel in the system start-up, never terminates.
-
-If a parent terminates without reaping its children, the `init` process is to reap them.
-
-Even though zombies are not running, they still consume system memory resources.
-
-A process waits for its children to terminate or stop by calling the `waitpid` function.
-
-```c
-#include <sys/types.h>
-#include <sys/wait.h>
-
-pid_t waitpid(pid_t pid, int *statusp, int options);
-
-//Returns PID of child if OK, 0 if WNOHANG, -1 if error
-```
-
-By default(`options = 0`) `waitpid` suspends execution of the calling process until a child process in its wait set terminates. After the function returns, the termianted child has been reaped and the kernel removes all traces fo it from system.
-
-The value of `pid` determines the members of the wait set:
-
-* If `pid` > 0, …
-* If `pid` = -1, the wait set contains all of the parent’s child processes.
-
-The default behavior can be modified by setting the options:
-
-* `WNOHANG` Return immediately (with a return value of 0) if none of the child processes in the wait set has terminated yet
-* `WUNTRACED` Suspend execution of the calling process until a process in the wait set becomes either terminated or stopped. Return the PID of the terminated or stopped child that caused the return.
-* `WCONTINUED` Suspend execution of the calling process until a running process in the wait set is terminated or until a stopped process in the wait set has been resumed by the receipt of a `SIGCONT` signal.
-* `WNOHANG|WUNTRACED` Return immediately, with a return value of 0, if none of the children in the wait set has stopped or terminated, or wuth a return value equal to the PID of one of the stopped or terminated children.
-
-The exit status of a reaped child in `*statusp`:
-
-![Untitled](https://p.ipic.vip/1sqkzz.jpg)
-
-A simpler version of `waitpid`
-
-```c
-#include <sys/types.h>
-#include <sys/wait.h>
-
-pid_t wait(int *statusp);
-```
-
-The order to reap the child processes is nondeterministic behavior that can make reasoning about concurrency so diffcult.
-
-### Putting Processes to Sleep
-
-The `sleep` function suspends a process for a specified period of time.
-
-```c
-#include <unistd.h>
-
-unsigned int sleep(unsigned int secs);
-
-//Returns: seconds left to sleep
-```
-
-Returns zero if the requested amount of time has elapsed, and the number of seconds still left to sleep otherwise. The latter case is possible if the `sleep` function returns prematurely because it was interrupted by a signal.
-
-### Loading and Running Programs
-
-The `execve` function loads and runs the executable object file `filename` with the argument list `argv` and the environment variable `envp`. `execve` returns to the calling program only there is an error, such as not being able to find `filename`. It is called once and never returns.
-
-```c
-#include <unistd.h>
-
-int execve(const char *filename, const char *argv[], const char *envp[]);
-```
-
-![Untitled](https://p.ipic.vip/w9j5nw.png)
-
-```c
-#include <stdlib.h>
-
-char *getenv(const char *name);
-
-//Returns: pointer to name if it exists, NULL if no match
-
-int setenv(const char *name, char *newvalue, int overwrite);
-
-//Returns: 0 on success, -1 on error
-
-void unsetenv(const char *name);
-
-//Returns: nothing
-```
-
 ## Singals
 
 ![Untitled](https://p.ipic.vip/ycf4ng.jpg)
@@ -459,7 +190,7 @@ Guidelines:
 
     ```c
     volatile sig_atomic_t count = 0;
-
+    
     void handler(int signum) {
         ++count;
         printf("Signal caught %d time(s)\n", count);
@@ -471,7 +202,7 @@ Guidelines:
     ```c
     volatile sig_atomic_t count = 0;
     pthread_mutex_t count_mutex = PTHREAD_MUTEX_INITIALIZER;
-
+    
     void handler(int signum) {
         pthread_mutex_lock(&count_mutex);
         ++count;
@@ -520,25 +251,25 @@ Guidelines:
     #include <signal.h>
     #include <stdio.h>
     #include <stdlib.h>
-
+    
     sig_atomic_t sig_received = 0;
-
+    
     void sig_handler(int sig)
     {
         sig_received = 1;
     }
-
+    
     int main()
     {
         signal(SIGINT, sig_handler);
-
+    
         while (1) {
             if (sig_received) {
                 printf("Signal received!\n");
                 sig_received = 0;
             }
         }
-
+    
         return 0;
     }
     ```
