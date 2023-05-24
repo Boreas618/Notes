@@ -178,9 +178,97 @@ Let $$N_{PS}(x_1,\dots,x_n)$$ be the number of samples generated for event $$x_1
 $$
 \lim_{N\rightarrow\infin} \widehat{P}(x_1,\dots,x_n) = \lim_{N\rightarrow \infin} {\frac{N_{PS} (x_1,\dots,x_n)}{N}} = S_{PS}(x_1,\dots,x_n) = P(x_1,\dots,x_n)
 $$
-The sampling procedure is consistent.
+The sampling procedure is consistent. 
+
+> **Consistent**
+>
+> An estimator is said to be consistent if it converges in probability to the true value of the parameter being estimated as the sample size increases.
 
 ### Rejection Sampling
 
-Let's say we want $$P(C)$$. There's no point keeping all samples around. We just tally counts of C as we go.
+Let's say we want $$P(C)$$. There's no point keeping all samples around. We just tally counts of $C$ as we go.
 
+```pseudocode
+for i in 1, 2, ..., n
+	sample(xi, P(Xi|Parents(Xi)))
+	if xi not consistent with evidence
+		reject
+return (x1,x2,...,xn)
+```
+
+![Screenshot 2023-05-24 at 8.17.26 PM](https://p.ipic.vip/t8birf.png)
+
+$P(shape|blue)$
+
+If we find a red/green, we just throw it away. Then why did we generate it?
+
+### Likelihood Weighting
+
+<img src="https://p.ipic.vip/fx13gv.png" alt="Screenshot 2023-05-24 at 8.21.48 PM" style="zoom:50%;" />
+
+We force the samples to be blue. Every sample is consistent with the evidence now. The idea here is to fix evidence variables and sample the rest.
+
+But this is not necessarily consistent with the joint distribution. So we introduce the weight.
+
+```pseudocode
+w = 1.0
+
+for i = 1, 2, ..., n
+	if Xi is an evidence variable
+		Xi = observation xi for Xi
+		w = w * P(xi|Parents(Xi))
+	else
+		sample(xi, P(Xi|Parents(Xi))
+
+return (x1,x2,...,xn), w
+```
+
+Sampling distribution if $$\bold{z}$$ sampled and $e$ fixed evidence
+$$
+S_{WS}(\bold{z},e) = \prod_{i=1}^{l}P(z_i|Parents(Z_i))
+$$
+
+$$
+\omega(\bold{z},e) = \prod_{i=1}^{m} P(e_i|Parents(E_i))
+$$
+
+Together, weight sampling distribution is consistent:
+$$
+S_{WS}(\bold{z},e)\cdot \omega(\bold{z},e)  = \prod_{i=1}^{l}P(z_i|Parents(Z_i)) \prod_{i=1}^{m} P(e_i|Parents(E_i))
+$$
+Likelihood wieghting doesn't solve all our problems: **Evidence influences the choice of downstream variables, but not upstream ones**
+
+ <img src="https://p.ipic.vip/fzesun.png" alt="Untitled" style="zoom:50%;" />
+
+The problem is, if $$J$$ and $M$ are the evidence, the weight is extremely low in some cases and you can't affect the choice of $A$, $B$ and $E$. But if $A$ and $B$ are the evidence, your simulation is based on the evidence all the way down to the $J$.
+
+<img src="https://p.ipic.vip/v36e3q.png" alt="Screenshot 2023-05-24 at 9.03.27 PM" style="zoom:50%;" />
+
+A simpler would be the above one. Your simluation is like:
+
+```
+F A Weight
+-f +a 0.01
+-f +a 0.01
+-f +a 0.01
+-f +a 0.01
+-f +a 0.01
+......
++f +a 0.99
+```
+
+### Gibbs Sampling
+
+**Step 1** Fix evidence <img src="https://p.ipic.vip/ysa6wf.png" alt="Screenshot 2023-05-24 at 9.11.38 PM" style="zoom:50%;" />
+
+**Step 2** Initialize other variables **randomly** <img src="https://p.ipic.vip/i1jnu6.png" alt="Screenshot 2023-05-24 at 9.12.15 PM" style="zoom:50%;" />
+
+**Step 3** Repeat 
+
+![Screenshot 2023-05-24 at 9.13.17 PM](https://p.ipic.vip/7e4m5s.png)
+
+Choose a non-evidence variable $X$
+
+Resample $X$ from $P(X|all\space other\space variables)$
+
+![Screenshot 2023-05-24 at 9.15.22 PM](https://p.ipic.vip/189vh2.png)
