@@ -1,6 +1,6 @@
 # README
 
-Visit the GitBook page at [https://sodium-1.gitbook.io/notes/](https://sodium-1.gitbook.io/notes/) to access these topics:
+This repository covers the following topics:
 
 * Artificial Intelligence
 * Computer Networking
