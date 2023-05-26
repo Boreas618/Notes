@@ -237,3 +237,52 @@ If a packet with sequence number *n* is received correctly and is in order (that
 In our GBN protocol, the receiver discards out-of-order packets.
 
 While the sender must maintain the upper and lower bounds of its window and the position of *nextseqnum* within this window, the only piece of information the receiver need maintain is the sequence number of the next in-order packet. This value is held in the variable `expectedseqnum`.
+
+<img src="https://p.ipic.vip/cg19tc.png" alt="Screenshot 2023-05-26 at 6.41.00 PM" style="zoom:50%;" />
+
+### Selective Repeat
+
+The issue of GBN is that the retransmissions are wasteful.
+
+As the name suggests, selective-repeat protocols avoid unnecessary retransmissions by having the sender retransmit only those packets that it suspects were received in error (that is, were lost or corrupted) at the receiver. 
+
+This individual, as-needed, retransmission will require that the receiver *individually* acknowledge correctly received packets. A window size of *N* will again be used to limit the number of outstanding, unacknowledged packets in the pipeline. However, unlike GBN, the sender will have already received ACKs for some of the packets in the window.
+
+<img src="https://p.ipic.vip/c9z3ez.png" alt="Screenshot 2023-05-26 at 7.11.14 PM" style="zoom:50%;" />
+
+**Out-of-order packets are buffered** until any missing packets (that is, packets with lower sequence numbers) are received, at which point a batch of packets can be delivered in order to the upper layer.
+
+The receiver reacknowledges (rather than ignores) already received packets with certain sequence numbers *below* the current window base. You should convince yourself that this reacknowledgment is indeed needed.
+
+![Screenshot 2023-05-26 at 7.38.30 PM](https://p.ipic.vip/mjqqb5.png)
+
+If a packet has been received by the receiver in SR, and the same packet is sent once again, the receiver would typically acknowledge it as if it was the first time the packet was received. If the sender doesn't receive the acknowledgement, the window won't move forward.
+
+**The window size must be less than or equal to half the size of the sequence number space for SR protocols.** Otherwise, the receiver cannot tell apart a new packet and a retransmission.
+
+![Screenshot 2023-05-26 at 7.55.09 PM](https://p.ipic.vip/a956cn.png)
+
+## Connection-Oriented Transportation: TCP
+
+### The TCP Connection
+
+* Full-duplex service
+* Point-to-point
+
+Once the data passes through the socket, the data is in the hands of TCP running in the client. TCP directs this data to the connection's send buffer, which is one of the buffers that is set aisde during the initial three-way handshake. From time to time, TCP will grab chunks of data from the send buffer and pass the data to the network layer.
+
+The maximum amount of data that can be grabbed and placed in a segment is limited by the **maximum segment size (MSS)**. The MSS is typically set by first determining the length of the largest link-layer frame that can be sent by the local sending host (the so- called **maximum transmission unit, MTU**), and then setting the MSS to ensure that a TCP segment (when encapsulated in an IP datagram) plus the TCP/IP header length (typically 40 bytes) will fit into a single link-layer frame.
+
+TCP pairs each chunk of client data with a TCP header, thereby forming **TCP segments**. The segments are passed down to the network layer, where they are separately encapsulated within network-layer IP datagrams. The IP datagrams are then sent into the network. When TCP receives a segment at the other end, the segment’s data is placed in the TCP connection’s receive buffer.
+
+![Screenshot 2023-05-26 at 8.12.09 PM](https://p.ipic.vip/wbsjve.png)
+
+### TCP Segment Structure
+
+<img src="https://p.ipic.vip/mmiq60.png" alt="Screenshot 2023-05-26 at 8.15.22 PM" style="zoom:50%;" />
+
+The 4-bit **header length field** specifies the length of the TCP header in 32-bit words. The TCP header can be of variable length due to the TCP options field. (Typically, the options field is empty, so that the length of the typical TCP header is 20 bytes.)
+
+The optional and variable-length **options field** is used when a sender and receiver negotiate the maximum segment size (MSS) or as a window scaling factor for use in high-speed networks. A timestamping option is also defined
+
+The **flag field** contains 6 bits. The **ACK bit** is used to indicate that the value carried in the acknowledgment field is valid; that is, the segment contains an acknowledgment for a segment that has been successfully received. The **RST**, **SYN**, and **FIN** bits are used for connection setup and teardown. The **CWR** and **ECE** bits are used in explicit congestion notification. Setting the **PSH** bit indicates that the receiver should pass the data to the upper layer immediately. Finally, the **URG** bit is used to indicate that there is data in this segment that the sending-side upper-layer entity has marked as “urgent.” The location of the last byte of this urgent data is indicated by the 16-bit **urgent data pointer field**. TCP must inform the receiving-side upper- layer entity when urgent data exists and pass it a pointer to the end of the urgent data. (In practice, the **PSH**, **URG**, and the urgent data pointer are not used. However, we mention these fields for completeness.)
