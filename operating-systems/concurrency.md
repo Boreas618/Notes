@@ -302,3 +302,20 @@ The basic idea is simple. The thread library instantiates all of its data struct
 A limitation of green threads is that the operating system kernel is unaware of the state of the user-level ready list. If the application performs a system call that blocks waiting for I/O, the kernel is unable to run a different user-level thread. Likewise, on a multiprocessor, the kernel is unable to run the different threads running within a single process on different processors.
 
 You can achieve preemptive user-level threads by means of signals
+
+1. The user-level thread library makes a system call to register a timer signal handler and signal stack with the kernel.
+2. When a hardware timer interrupt occurs, the hardware saves P ’s register state and runs the kernel’s handler.
+3. Instead of restoring P ’s register state and resuming P where it was interrupted, the kernel’s handler copies P ’s saved registers onto P ’s signal stack.
+4. The kernel resumes execution in P at the registered signal handler on the signal stack.
+5. The signal handler copies the processor state of the preempted user-level thread from the signal stack to that thread’s TCB.
+6. The signal handler chooses the next thread to run, re-enables the signal handler (the equivalent of re-enabling interrupts), and restores the new thread’s state from its TCB into the processor. execution with the state (newly) stored on the signal stack.
+
+### Implementing User-Level Threads With Kernel Support
+
+**Hybrid Thread Join** A special case: the objective thread has finished before the current thread calling `thread_join()`. In this case, we can store the exit status of the objective thread in the process's address space.
+
+**Per-Processor Kernel Threads** When the application starts up, the user-level thread library creates one kernel thread for each processor on the host machine. As long as there is no other activity on the system, the kernel will assign each of these threads a processor. Each kernel thread executes the **user-level** scheduler in parallel: pull the next thread off the user-level ready list, and run it. Because thread scheduling decisions occur at user level, they can be flexible and application-specific; for example, in a parallel graph algorithm, the programmer might adjust the priority of various threads based on the results of the computation on other parts of the graph.
+
+**Scheduler Activations**
+
+Based on the above approach, the user-level thread scheduler is notified (or activated) for every kernel event that might affect the user-level thread system.

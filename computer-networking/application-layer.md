@@ -1,12 +1,6 @@
-# Application Layer
+# Principles of Network Applications
 
-## Principles of Network Applications
-
-### Network Architecture
-
-The two predominant architectural paradigms used in modern network applications: the **client-server** architecture or the **peer-to-peer (P2P)** architecture.
-
-### Process Communication
+## Process Communication
 
 Processes on two different end systems communicate with each other by exchanging **messages** across the computer network. Processes communicating with each other reside in the application layer of the five-layer protocol stack.
 
@@ -27,7 +21,7 @@ To identify the receiving process, two pieces of information need to be specifie
 
 **Only one program can bind a socket to a particular port at any given time.**
 
-### Transport Services Available to Applications
+## Transport Services Available to Applications
 
 Four dimensions of services a transport-layer protocol can offer to applications:
 
@@ -42,7 +36,7 @@ Four dimensions of services a transport-layer protocol can offer to applications
 
 **Timing**: An example guarantee might be that every bit that the sender pumps into the socket arrives at the receiver’s socket no more than 100 ms later.
 
-### Transport Services Provided by the Internet
+## Transport Services Provided by the Internet
 
 The Internet (and, more generally, TCP/IP networks) makes two transport protocols available to applications, UDP and TCP. When you (as an application developer) create a new network application for the Internet, one of the first decisions you have to make is whether to use UDP or TCP. Each of these protocols offers a different set of services to the invoking applications.
 
@@ -71,15 +65,15 @@ Internet telephony applications usually prefer to run their applications over UD
 
 ![](https://p.ipic.vip/xpkp3e.png)
 
-### Application-Layer Protocols
+## Application-Layer Protocols
 
 RFC vs Proprietary application protocols
 
-## The Web and HTTP
+# The Web and HTTP
 
 The World Wide Web is an Internet application.
 
-### Overview of HTTP
+## Overview of HTTP
 
 HTTP(Hyper Text Transfer Protocol) is the Web's application-layer protocol. It is implemented in two programs: a client program and a server program. The client and server exchange HTTP messages.
 
@@ -91,7 +85,7 @@ The HTTP client first initiates a TCP connection with the server. Once the conne
 
 Because an HTTP server maintains no information about the clients, HTTP is said to be a **stateless protocol**.
 
-### Non-Persistent and Persistent Connections
+## Non-Persistent and Persistent Connections
 
 Although HTTP uses persistent connections in its default mode, HTTP clients and servers can be configured to use non-persistent connections instead.
 
@@ -124,7 +118,7 @@ Multiple Web pages residing on the same server can be sent from the server to th
 
 Typically, the HTTP server closes a connection when it isn’t used for a certain time (a configurable timeout interval)
 
-### HTTP Message Format
+## HTTP Message Format
 
 ```http
 GET /somedir/page.html HTTP/1.1
@@ -163,7 +157,7 @@ The `Date:` header line indicates the time and date when the HTTP response was c
 
 <figure><img src="https://p.ipic.vip/xqorkn.png" alt="" width="375"><figcaption></figcaption></figure>
 
-### User-Server Interaction: Cookies
+## User-Server Interaction: Cookies
 
 HTTP is stateless. We can use cookies to keep track of users.
 
@@ -188,7 +182,7 @@ Cookie: 1678
 
 Cookies can thus be used to create a user session layer on top of stateless HTTP.
 
-### Web Caching
+## Web Caching
 
 A **Web cache**—also called a **proxy server**—is a network entity that satisfies HTTP requests on the behalf of an origin Web server. The Web cache has its own disk storage and keeps copies of recently requested objects in this storage.
 
@@ -207,9 +201,9 @@ There are shared CDNs (such as Akamai and Limelight) and dedicated CDNs (such as
 * uses `GET` method
 * the request message includes an `If-Modified-Since:` header line
 
-## DNS - The Internet's Directory Service
+# DNS - The Internet's Directory Service
 
-### Service Provided by DNS
+## Service Provided by DNS
 
 Domain Name System
 
@@ -236,7 +230,7 @@ DNS provides a few other important services in addition to translating hostnames
 
     When clients make a DNS query for a name mapped to a set of addresses, the server responds with the entire set of IP addresses, but rotates the ordering of the addresses within each reply. Because a client typically sends its HTTP request message to the IP address that is listed first in the set, DNS rotation distributes the traffic among the replicated servers.
 
-### Overview of How DNS Works
+## Overview of How DNS Works
 
 The application will invoke the client side of DNS, specifying the hostname that needs to be translated. (On many UNIX-based machines, `gethostbyname()` is the function call that an application calls in order to perform the translation.)
 
@@ -264,7 +258,7 @@ Each time the local DNS server `dns.nyu.edu` receives a reply from some DNS serv
 
 A local DNS server can also cache the IP addresses of TLD servers, thereby allowing the local DNS server to bypass the root DNS servers in a query chain. In fact, because of caching, root servers are bypassed for all but a very small fraction of DNS queries.
 
-### DNS Records and Messages
+## DNS Records and Messages
 
 The DNS servers store resource records(RRs), including RRs that provides hostname-to-IP address mappings. Each DNS reply message carries one or more resource records.
 

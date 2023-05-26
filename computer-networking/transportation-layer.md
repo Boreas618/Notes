@@ -209,9 +209,31 @@ We define `base` to be the sequence number of the oldest unacknowledged packet a
 
 | Interval                 | Description                   |
 | ------------------------ | ----------------------------- |
-| $[0, base-1]$            | Transmitted and acknowledged  |
+| $[0, base-1]$            | Sent and acknowledged         |
 | $[base, nextseqnum-1]$   | Sent but not yet acknowledged |
 | $[nextseqnum, base+N-1]$ | Can be sent                   |
 | $[base+N, \infty]$       | Cannot be used                |
 
 $N$ is referred to as the **window size**. GBN protocol is a **sliding-window protocol**.  
+
+Why we need to limit the window size to $N$ ?
+
+<img src="https://p.ipic.vip/26s1ts.png" alt="Screenshot 2023-05-26 at 6.32.17 PM" style="zoom:50%;" />
+
+#### Sender Side
+
+**Invocation from above** When `rdt_send()` is called from above, the sender first checks to see if the window is full, that is, whether there are *N* outstanding, unacknowledged packets. If the window is not full, a packet is created and sent, and variables are appropriately updated.
+
+**Receipt of an ACK**  In our GBN protocol, an acknowledgment for a packet with sequence number *n* will be taken to be a **cumulative acknowledgment**, indicating that all packets with a sequence number up to and including *n* have been correctly received at the receiver.
+
+**Timeout Event** The protocol’s name, “Go-Back-N,” is derived from the sender’s behavior in the presence of lost or overly delayed packets. As in the stop-and-wait protocol, a timer will again be used to recover from lost data or acknowledgment packets. If a timeout occurs, the sender resends *all* packets that have been previously sent but that have not yet been acknowledged. In the illustration, there's only one timer, which can be thought of as a timer for the oldest transmitted but not yet acknowledged packet. If an ACK is received but there are still additional transmitted but not yet acknowledged packets, the timer is restarted. If there are no outstanding, unacknowledged packets, the timer is stopped.
+
+#### Receiver Side
+
+<img src="https://p.ipic.vip/21jxyt.png" alt="Screenshot 2023-05-26 at 6.37.05 PM" style="zoom:50%;" />
+
+If a packet with sequence number *n* is received correctly and is in order (that is, the data last delivered to the upper layer came from a packet with sequence number n−1), the receiver sends an ACK for packet *n* and delivers the data portion of the packet to the upper layer. In all other cases, the receiver discards the packet and resends an ACK for the most recently received in-order packet.
+
+In our GBN protocol, the receiver discards out-of-order packets.
+
+While the sender must maintain the upper and lower bounds of its window and the position of *nextseqnum* within this window, the only piece of information the receiver need maintain is the sequence number of the next in-order packet. This value is held in the variable `expectedseqnum`.
