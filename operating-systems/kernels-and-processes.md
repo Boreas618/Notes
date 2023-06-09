@@ -116,8 +116,11 @@ What happens when we run a program in shell: A process is created and the execut
 
 The operating system keeps track of the various processes on the computer using a data structure called the **process control block(PCB).** The process control block stores all the information the operating system needs about a particular process: where it is stored in memory, where its executable image is on disk, which user asked it to start executing, what privileges the process has, and so forth.
 
+<img src="https://p.ipic.vip/f6lhf2.png" alt="image-20230527024309851" style="zoom:25%;" />
+
 The private address space for a process is like:
-![Untitled](https://p.ipic.vip/hxsui1.jpg)
+
+<img src="https://p.ipic.vip/hxsui1.jpg" alt="Untitled" style="zoom:50%;" />
 
 > In Intel processors, the privilege level of a process is stored in a field within the Code Segment (CS) register. This field is known as the Current Privilege Level (CPL).
 >
@@ -343,13 +346,17 @@ A hardware timer: interrupt the processor after a certain delay.
 
 After resetting the timer, the operating system will resume execution of the process.
 
+### Context Switch
+
+<img src="https://p.ipic.vip/fmr68j.png" alt="image-20230527024434700" style="zoom:25%;" />
+
 ## Safe control transfer
 
 Three reasons for transferring from user-mode to kernel-mode:
 
 * **Exceptions catched** 
 
-  Can be used to set breakpoints
+  Can be used to set breakpoints 
 
 *   **Interrupts arrived**
 
@@ -491,7 +498,7 @@ The kernel stub has four tasks:
 
 In turn, the system call handler pops any saved registers (except `%eax`) and uses the `iret` instruction to return back to the user stub immediately after the trap, allowing the user stub to return to the user program.
 
-### Staring a new process
+### Starting a new process
 
 The kernel allocates and initializes the process control block, allocates memory for the process, copies the program from disk into the newly allocated memory, and allocates **both** a **user-level** stack for normal execution and a **kernel-level** stack for handling system calls, interrupts and exceptions.
 

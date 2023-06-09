@@ -28,7 +28,7 @@ In addition, the operating system can assign different segments different permis
 
 ![Screenshot 2023-05-25 at 11.20.11 PM](https://p.ipic.vip/ocs8d1.png)
 
-Ff a program branches into or tries to load data from one of these gaps? The hardware will generate an exception, trapping into the operating system kernel. On UNIX systems, this is still called a *segmentation fault*.
+If a program branches into or tries to load data from one of these gaps, the hardware will generate an exception, trapping into the operating system kernel. On UNIX systems, this is still called a *segmentation fault*.
 
 - [x] Share regions
 
@@ -106,7 +106,102 @@ The x86 uses separate processor registers to specify the segment number (that is
 
 The segment register is often implicit as part of the instruction. For example, the x86 stack instructions such as push and pop assume the stack segment (the index stored in the stack segment register), branch instructions assume the code segment (the index stored in the code segment register), and so forth.
 
-For the 32-bit x86, the virtual address space within a segment has a two-level page table. The first 10 bits of the virtual address index the top level page table, called the *page directory*, the next 10 bits index the second level page table, and the final 12 bits are the offset within a page. Each page table entry takes four bytes and the page size is 4 KB, so the top-level page table and each second-level page table fits in a single physical page. The number of second-level page tables needed depends on the length of the segment; they are not needed to map empty regions of virtual address space. Both the top-level and second-level page table entries have permissions, so fine-grained protection and sharing is possible within a segment.
+For the 32-bit x86, the virtual address space within a segment has a two-level page table. **The first 10 bits of the virtual address index the top level page table, called the *page directory*, the next 10 bits index the second level page table, and the final 12 bits are the offset within a page.** Each page table entry takes four bytes and the page size is 4 KB, so the top-level page table and each second-level page table fits in a single physical page. The number of second-level page tables needed depends on the length of the segment; they are not needed to map empty regions of virtual address space. Both the top-level and second-level page table entries have permissions, so fine-grained protection and sharing is possible within a segment.
+
+>  **About Segment**
+>
+> 1. **Text Segment (Code Segment)**: This contains the executable code of the program.
+> 2. **Data Segment**: This segment usually contains the global and static variables that are initialized by the programmer.
+> 3. **BSS Segment (Block Started by Symbol)**: This segment contains the global and static variables that are not initialized by the programmer.
+> 4. **Stack Segment**: This contains the program's runtime stack. Local variables and function call information typically reside here.
+> 5. **Heap Segment**: This is used for dynamic memory allocation during the program execution.
 
 As an optimization, the 64-bit x86 has the option to eliminate one or two levels of the page table. Each physical page frame on the x86 is 4 KB. Each page of fourth level page table maps 2 MB of data, and each page of the third level page table maps 1 GB of data. If the operating system places data such that the entire 2 MB covered by the fourth level page table is allocated contiguously in physical memory, then the page table entry one layer up can be marked to point directly to this region instead of to a page table. Likewise, a page of third level page table can be omitted if the operating system allocates the process a 1 GB chunk of physical memory.
 
+## Towards Efficiency Address Translation
+
+A ***translation lookaside buffer (TLB**)* is a small hardware table containing the results of recent address translations. Each entry in the TLB maps a virtual page to a physical page:
+
+```c
+TLB entry = {
+  virtual page number,
+  physical page frame number,
+  access permissions
+}
+```
+
+Instead of finding the relevant entry by a multi-level lookup or by hashing, the TLB hardware (typically) checks all of the entries simultaneously against the virtual page.
+
+An new translation will replace hte least used entry.
+
+<img src="https://p.ipic.vip/nbbpvl.png" alt="Screenshot 2023-05-29 at 10.19.51 AM" style="zoom:50%;" />
+
+TLB table entries are implemented in fast on-chip static memory near the processor. Multiple levels of TLB are used to keep lookups rapid, with smaller first level TLBs close to the processor and larger second level TLBs consulted if necessary.
+
+A TLB also requires an address comparator for each entry to check in parallel if there is a match. To reduce this cost, some TLBs are *set associative*. Compared to fully associative TLBs, set associative ones need fewer comparators, but they may have a higher miss rate.
+$$
+Cost(address\space translation)= Cost(TLB\space lookup) + Cost (full\space  translation) × (1 - P(hit))
+$$
+
+### Superpages
+
+Superpage can drastically reduce the number of TLB entries needed to map large, contiguous regions of memory. Each entry in the TLB has a flag, signifying whether the entry is a page or a superpage.
+
+![Screenshot 2023-05-29 at 10.35.59 AM](https://p.ipic.vip/0p6hnk.png)
+
+When looking for a match against a superpage, the TLB only considers the most significant bits of the address, ignoring the offset within the superpage. For a 2 MB superpage, the offset is the lowest 21 bits of the virtual address. For a 1 GB superpage it is the lowest 30 bits.
+
+Use case: map the frame buffer for computer display
+
+### TLB Consistency
+
+* Process context switch
+
+  When a process context switch happens, the TLB of old process should be not accessed by the new process. We introduce **tagged TLB**.
+
+  ```pseudocode
+  tagged TLB entry = {
+  	process ID,
+  	virtual page number,
+  	physical page frame number,
+  	access permissions
+  }
+  ```
+
+  When performing a lookup, the hardware ignores TLB entries from other processes, but it can reuse any TLB entries that remain from the last time the current process executed.
+
+* Permission reduction
+
+  Whenever the operating system changes the page table, it ensures that the TLB does not contain an incorrect mapping.
+
+  Nothing needs to be done when the operating system adds permissions to a portion of the virtual address space. 
+
+  > The operating system might dynamically extend the heap or the stack by allocating physical memory and changing invalid page table entries to point to the new memory, or the operating system might change a page from read-only to read-write. In these cases, the TLB can be left alone because any references that require the new permissions will either cause the hardware load the new entries or cause an exception, allowing the operating system to load the new entries.
+
+  However, if the operating system needs to *reduce permissions* to a page, then the kernel needs to ensure the TLB does not have a copy of the old translation before resuming the process. If the page was shared, the kernel needs to ensure that the TLB does not have the copy for any of the process ID’s that might have referenced the page. For example, to mark a region of memory as copy-on-write, the operating system must reduce permissions to the region to read-only, and it must remove any entries for that region from the TLB, since the old TLB entries would still be read- write.
+
+  Early computers discarded the entire contents of the TLB whenever there was a change to a page table, but more modern architectures, including the x86 and the ARM, support the removal of individual TLB entries.
+
+* TLB shootdown
+
+  For multiprocessor, each processor's TLB need to be discarded when the page table is changed. Only the current processor can invalidate its own TLB, so removing the entry from all processors on the system requires that the operating system interrupt each processor and send a TLB shutdown to all of them. The original processor can continue only when *all* of the processors have acknowledged removing the old entry from their TLB.
+
+### Virtually Addressed Caches
+
+Another step to improving the performance of address translation is to include a virtually addressed cache *before* the TLB is consulted. A virtually addressed cache stores a copy of the contents of physical memory, indexed by the virtual address.
+
+Often, like the TLB, the virtually addressed cache will be split in half, one for instruction lookups and one for data.
+
+![Screenshot 2023-05-29 at 11.06.33 AM](https://p.ipic.vip/ee64ou.png)
+
+Most systems with virtually addressed caches use them in tandem with the TLB. Each virtual address is looked up in both the cache and the TLB at the same time; the TLB specifies the permissions to use, while the cache provides the data if the access is permitted. This way, only the TLB’s permissions need to be kept up to date. The TLB and virtual cache are co-designed to take the same amount of time to perform a lookup, so the processor does not stall waiting for the TLB.
+
+**Memory aliasing**: different process, different virtual memory, same physical memory.
+
+Store the physical address along with the virtual address in the virtual cache. In parallel with the virtual cache lookup, the TLB is consulted to generate the physical address and page permissions. On a store instruction modifying data in the virtual cache, the system can do a reverse lookup to find all the entries that match the same physical address, to allow it to update those entries.
+
+### Physically Addressed Caches
+
+![Screenshot 2023-05-29 at 11.14.26 AM](https://p.ipic.vip/zhbc78.png)
+
+Typically, the second-level cache is per-core and is optimized for latency; a typical size is 256 KB. The third-level cache is shared among all of the cores on the same chip and will be optimized for size; it can be as large as 2 MB on a modern chip.

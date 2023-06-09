@@ -14,10 +14,12 @@ Traverse the search tree all the way down and propagate the minimum and maximum 
 
 **Properties of minimax**
 
-- **Complete** Yes, if tree is infinte
-- **Optimal** Yes against an optimal opponent
-- **Time Complexity** $O(b^m)$
-- **Space Complexity** $O(bm)$ depth-first exploration
+| Attribute        | Value                              |
+| ---------------- | ---------------------------------- |
+| Complete?        | Yes if tree is finite              |
+| Time Complexity  | $$O(b^m)$$ Indeed a DFS            |
+| Space Complexity | $$O(bm)$$                          |
+| Optimal?         | Yes if against an optimal opponent |
 
 **Resource Limits**
 
@@ -25,13 +27,9 @@ We cannot search all the way down to the leaf in practice.
 
 Standard approach:
 
-- cutoff test
+- **cutoff test**: depth limit(perhaps add quiescence search)
 
-  depth limit(perhaps add quiescence search)
-
-- evaluation function
-
-  estimated desirability of position
+- **evaluation function**: estimated desirability of position
 
 **Cutting Off Search**
 
@@ -54,7 +52,7 @@ Exact values don’t matter. Behavior is preserved under any **monotonic** trans
 
 Only the order matters: payoff in deterministic games act as an *ordinal utility* function
 
-$\alpha-\beta$ **pruning**
+### $\alpha-\beta$ **pruning**
 
 Conceptually, alpha-beta pruning is this: if you’re trying to determine the value of a node *n* by looking at its successors, stop looking as soon as you know that *n*’s value can at best equal the optimal value of *n*’s parent.
 
@@ -70,31 +68,41 @@ Good move ordering improves effectiveness of pruning
 
 With “perfect ordering”, time complexity $=O(b^{\frac{m}{2}})$. In this way, the depth of search can be doubled and the agent can easily reach depth 8 and play good chess.
 
-<img src="https://p.ipic.vip/gsgu7k.jpg" alt="Screenshot 2023-04-11 at 9.52.16 PM.png" style="zoom:50%;" />
+![Screenshot 2023-06-05 at 8.32.57 PM](https://p.ipic.vip/9vvxja.png)
 
 Initially, $$\alpha$$ is $$-\infin$$, $$\beta$$ is $$+\infin$$.
 
 <img src="https://p.ipic.vip/nsxv6r.png" alt="image-20230509122605376" style="zoom:50%;" />
 
-**Algorithm for Nondeterministic Games**
+### Algorithm for Nondeterministic Games 
 
-$EXPECTMINIMAX$ gives perfect play
+Expectimax gives perfect play
 
-Just like $MINIMAX$, except we must also handle chance ndoes:
+Just like minimax, except we must also handle chance nodes:
 
-if $state$ is a chance node then
+if $state$ is a chance node then return average of expectimax of $SUCCESSORS$$(state)$
 
-return average of $EXPECTIMINIMAX-VALUE$ of $SUCCESSORS$$(state)$
+A version of $α–β$ pruning is possible but only if the leaf values are bounded..
+
+We can do depth-limit in expectimax search.
 
 **Nondeterministic Games in Practice**
 
-Dice rolls increase $b$
+* Max nodes (triangle) as in minimax search
 
-As depth increases, probablity of reaching a given node shrinks. Value of lookahead is diminished.
+* Chance nodes are like min nodes but the outcome is uncertain
+
+  We calculate their expected utilities
 
 The values for the evaluation function **should be** exact. Behaviour is preserved only by **positive linear** transformation of $EVAL$. Hence $EVAL$ should be proportional to the expected payoff.
 
 ![Screenshot 2023-04-11 at 10.17.20 PM.png](https://p.ipic.vip/30t7cs.png)
+
+### Assumption vs Reality
+
+The minimax thinks permissively while the expectimax thinks with balance.
+
+<img src="https://p.ipic.vip/3jhjlj.png" style="zoom:50%;" />
 
 ## Monte Carlo Tree Search
 

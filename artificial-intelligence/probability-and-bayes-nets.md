@@ -33,7 +33,7 @@ Three types of variables:
 
 ![Untitled](https://p.ipic.vip/u99fjt.png)
 
-# BAYES NETS
+# Bayes NetS
 
 Not impractical to store the **entire** joint distribution in the memory.
 

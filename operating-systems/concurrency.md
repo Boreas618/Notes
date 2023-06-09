@@ -39,9 +39,9 @@ int pthread_join(pthread_t thread, void **retval);
 * `thread`: The thread ID of the thread to join.
 * `retval`: A pointer to a variable that will be filled in with the exit status of the joined thread.
 
-When `pthread_join()` is called, the calling thread blocks until the specified thread terminates. Once the thread has terminated, `pthread_join()` returns and the exit status of the thread is stored in the location pointed to by `retval`.
+When `pthread_join()` is called, **the calling thread blocks until the specified thread terminates.** Once the thread has terminated, `pthread_join()` returns and the exit status of the thread is stored in the location pointed to by `retval`.
 
-```
+```c
 void pthread_exit(void *retval);
 ```
 
@@ -68,7 +68,7 @@ A pointer to the thread’s stack and a copy of its processor registers.
 
 In some systems, the general-purpose registers for a stopped thread are stored on the top of the stack, and the TCB contains only a pointer to the stack. In other systems, the TCB contains space for a copy of all processor registers.
 
-<figure><img src="https://p.ipic.vip/at02p3.png" alt="" width="375"><figcaption></figcaption></figure>
+<img src="https://p.ipic.vip/at02p3.png" alt="" width="375">
 
 **Per-thread Metadata**
 
@@ -97,25 +97,34 @@ A thread in the **WAITING** state is waiting for some event. Whereas the schedul
 
 When a thread is in the **WAITING** state, rather than continuing to run the thread or storing the TCB on the scheduler’s ready list, the TCB is stored on the _waiting list_ of some _synchronization variable_ associated with the event. When the required event occurs, the operating system moves the TCB from the synchronization variable’s waiting list to the scheduler’s ready list, transitioning the thread from WAITING to READY.
 
+## Ready Queue And Various I/O Device Queues
+
+Porocess not running: PCB or TCB is in some scheduler queue
+
+* There are separate queues for each device/signal/condition
+* Each queue can have a differernt scheduler policy
+
+![Screenshot 2023-05-27 at 8.15.47 AM](https://p.ipic.vip/5ep9k1.png)
+
 ## Implementing Kernel Threads
 
 * **Kernel threads** The simplest case is implementing threads inside the operating system kernel, sharing one or more physical processors. A _kernel thread_ executes kernel code and modifies kernel data structures. Almost all commercial operating systems today support kernel threads. (e.g., process scheduling, memory management)
 
 *   **Kernel threads and single-threaded processes.** An operating system with kernel threads might also run some single-threaded user processes.
 
-    <figure><img src="https://p.ipic.vip/3i4w5q.png" alt="" width="375"><figcaption></figcaption></figure>
+    <img src="https://p.ipic.vip/3i4w5q.png" alt="" width="375">
 
     Every thread corresponds to a user stack and kernel stack. 
     
 *   **Multi-threaded processes using kernel threads**
 
-    ![](https://p.ipic.vip/xdh0ef.png)
+    <img src="https://p.ipic.vip/xdh0ef.png" style="zoom:50%;" />
 
-    Each thread needs a kernel interrupt stack in the kernel. Here, "in the kernel" means that the data structure is managed and controlled by the kernel of the operating system.
+    Each thread needs a kernel stack in the kernel. Here, "in the kernel" means that the data structure is managed and controlled by the kernel of the operating system.
     
 *   **User-level threads**
 
-    The thread operations — create, yield, join, exit, and the synchronization routines is completely controlled by the user.
+    The thread operations — `create`, `yield`, `join`, `exit`, and the synchronization routines is completely controlled by the user.
 
 ### Creating a Thread
 
@@ -135,6 +144,8 @@ void thread_create(thread_t *thread, void (*func)(int), int arg) {
     
     // Create a stack frame by pushing stub’s arguments and start address
     // onto the stack: func, arg
+  	// This whole process is necessary because the thread isn't being started by a normal function call. Instead, it's 		
+  	// being started by the system's thread scheduler, which doesn't know anything about the stub function's arguments.
     *(tcb->sp) = arg;
     tcb->sp--;
     *(tcb->sp) = func;
@@ -154,7 +165,7 @@ void stub(void (*func)(int), int arg) {
 ```
 When we create a stack, we get the address of the stack. The stack is a continuous memory region from the starting address. We need to get to the top of the stack and the stack grows from higher address to lower address.
 
-Noting the step of calling stub. We need this extra step in case the func procedure returns instead of calling `thread_exit`. Without the stub, func would return to whatever random location is stored at the top of the stack! Instead, func returns to stub and stub calls thread\_exit to finish the thread.
+Noting the step of calling `stub`. We need this extra step in case the `func` procedure returns instead of calling `thread_exit`. Without the stub, func would return to whatever random location is stored at the top of the stack! Instead, func returns to stub and stub calls thread\_exit to finish the thread.
 
 ### Deleting a Thread
 
@@ -165,7 +176,7 @@ When a thread calls `thread_exit`,  there are two steps to deleting the thread:
 
 An important subtlety: After the thread remove itself from the ready list, an interrupt occurs before the thread finishes deallocating its memory. **Memory leak**.
 
-A thread never deletes its own state. Some other thread must do it. On exit, the thread transitions to the FINISHED state, moves its TCB from the ready list to a list of finished threads the scheduler should never run. Once the finished thread is no longer running, it is safe for some *other* thread to free the state of the thread.
+A thread never deletes its own state. Some other thread must do it. On exit, the thread transitions to the **FINISHED** state, moves its TCB from the ready list to a list of finished threads the scheduler should never run. Once the finished thread is no longer running, it is safe for some *other* thread to free the state of the thread.
 
 ### Thread Context Switch
 
@@ -173,11 +184,14 @@ The switch saves the currently running thread’s registers to the thread’s TC
 
 A thread context switch can be triggered by either a voluntary call into the thread library, or an involuntary interrupt or processor exception.
 
-**Voluntary**
+**Voluntary** **(Internal Events)**
 
 `thread_yield` call lets the currently running thread voluntarily give up processor to the next thread on the ready list.
 
 `thread_join` and `thread_exit`.
+
+* Blocking on I/O
+* Waiting for a signal
 
 **Involuntary**
 
@@ -211,14 +225,44 @@ We do not want to do an involuntary context switch while we are in the middle of
 > * Since it appears that the processor is still running the low priority thread, the interrupt handler immediately switches to the medium thread.
 > * It has to wait the low thread to reschedule to switch from the low priority to high priority
 
+Prototype:
+
+```pseudocode
+while(1){
+	RunThread();
+	ChooseNextThread();
+	SaveStateOfCPU(curTCB);
+	LoadStateOfCPU(newTCB);
+}
+```
+
+First, to run a thread:
+
+* Load its state into CPU
+* Load environment (virtual memory space, etc)
+* Jump to the PC
+
+To return the control back to the dispatcher:
+
+* Internal events: thread returns control voluntarily
+  * Requesting I/O
+  * Thread asks to `wait`
+  * call `yield()`
+* External events: thread gets preempted
+
 ```c
 // We enter as oldThread, but we return as newThread.
 // Returns with newThread’s registers and stack.
 void thread_switch(oldThreadTCB, newThreadTCB) {
-    pushad;                  // Push general register values onto the old stack.
-    oldThreadTCB->sp = %esp; // Save the old thread’s stack pointer.
-    %esp = newThreadTCB->sp; // Switch to the new stack.
-    popad;            // Pop register values from the new stack.
+    oldThreadTCB.regs.r7 = CPU.r7;
+  	// ...
+  	oldThreadTCB.regs.r0 = CPU.r0;
+  	oldThreadTCB.regs.retpc = CPU.retpc;
+  
+  	CPU.r7 = newThreadTCB.regs.r7;
+  	// ...
+  	CPU.r0 = newThreadTCB.regs.r0;
+  	CPU.retpc = newThreadTCB.regs.retpc;
 		return; 
 }
 
@@ -235,6 +279,7 @@ void thread_yield() {
     	runningThread->state = ready;
       readyList.add(runningThread);
       thread_switch(runningThread, chosenTCB); // Switch to the new thread.
+      // restore virtual memory space
       runningThread->state = running;
 		}
      // Delete any threads on the finished list.
@@ -256,9 +301,40 @@ void thread_yield() {
 }
 ```
 
+In Linux, the registers are stored in the `thread_struct` which is stored in the `task_struct`. The `task_struct` is actually the TCB implementation in Linux.
+
+```c
+struct task_struct {
+  volatile long state;    /* -1 unrunnable, 0 runnable, >0 stopped */
+  void *stack;            /* Points to the start of the stack */
+  atomic_t usage;         /* Usage count, see below. */
+  unsigned int flags;     /* Per process flags */
+  int prio, static_prio, normal_prio;  /* Process priority */
+  struct list_head tasks; /* List of tasks with the same real parent. */
+  struct mm_struct *mm, *active_mm;    /* Memory management information */
+  
+  // ...
+  struct thread_struct thread;
+  // ...
+}
+```
+
+```c
+struct thread_struct {
+    struct cpu_context cpu_context; /* CPU context. */
+    /* ... other fields ... */
+};
+
+struct cpu_context {
+    long sp; /* Stack pointer */
+    long pc; /* Program counter */
+    /* ... other registers ... */
+};
+```
+
 To facilitate the seamless switching between threads, we set up the newly created thread as if it had already been executing and then voluntarily suspended or yielded its execution.
 
-This means arranging the data on the stack to look as if the thread had been running and then voluntarily yielded control. This setup usually includes the return address where execution should resume (which, in this case, would be the start of the thread's function), and possibly also dummy values for saved register contents.
+This means **arranging the data on the stack** to look as if the thread had been running and then voluntarily yielded control. This setup usually includes the return address where execution should resume (which, in this case, would be the start of the thread's function), and possibly also dummy values for saved register contents.
 
 **Involuntary Kernel Thread Context Switch**
 

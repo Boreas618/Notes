@@ -39,8 +39,9 @@ Backtracking search:
 
 Three ideas to improve backtracking:
 
+* Filtering: detect inevitable failure
+
 - Ordering
-- Filtering: detect inevitable failure
 - Structure
 
 ## Filtering
@@ -49,9 +50,11 @@ A naive method of filtering is **forward checking**.
 
 Whenever a value is assigned to a variable $X_i$, prunes the domains of unassigned variables that share a constraint with $X_i$ that would violate the constraint if assigned.
 
-The idea of forward checking can be generalized into the principle of **arc consistency**.
+**The idea of forward checking can be generalized into the *principle of arc consistency.***
 
 An arc $X\rightarrow Y$ is consistent if for every $x$ in the tail there is some $y$ in the head which could be assigned without violating a constraint.
+
+------
 
 Key point: delete from the tail
 
@@ -76,7 +79,9 @@ A worst case of time complexity: $O(ed^3)$ where $e$ is the number of arcs and $
 
 Fewer backtracks and assignment, more computation.
 
-Arc consistency is a subset of a more generalized notion of consistency known as **k-consistency**. Arc consistecy is 2-consistency.
+----
+
+Arc consistency is a subset of a more generalized notion of consistency known as **$k$-consistency**. Arc consistecy is 2-consistency.
 
 Our consistency is about **pair** here. 
 
@@ -98,7 +103,7 @@ Principle:
 
 In terms of choosing variable, we take the most constrained variable.
 
-In terms of choosing value, we take the least constrained variable.
+In terms of choosing value, we take the least constrained value.
 
 Combing the principles can make some relative big problems feasible.
 
@@ -106,7 +111,7 @@ Combing the principles can make some relative big problems feasible.
 
 Extreme case: independent subproblems
 
-For a tree-structured CSP, we can reduce the runtime for finding a solution from $O(d^{N})$ all the way to $O(nd^2)$
+For a tree-structured CSP, we can reduce the runtime for finding a solution from $O(d^{N})$ all the way to $O(nd^2)$. This means that the tree-structured CSP can be solved in linear time.
 
 <img src="https://p.ipic.vip/wx0m31.jpg" alt="Untitled" style="zoom:50%;" />
 
@@ -117,16 +122,16 @@ Tree-structured CSP algorithm:
 - Perform a **backwards pass** of arc consistency
 - Perform a **forward assignment**
 
-The tree structured algorithm can be extended to CSPs that are reasonably close to being tree-structured with **cutset conditioning**. It involves first finding the samllest subset of variables in a constraint graph such that their removal results in a tree(such a subset is known as a cutset for the graph).
+The tree structured algorithm can be extended to CSPs that are reasonably close to being tree-structured with **cutset conditioning**. It involves first finding the samllest subset of variables in a constraint graph such that their removal results in a tree(such a subset is known as a cutset for the graph). They are called cutset and the size of the cutset is $c$.
 
 ![Untitled](https://p.ipic.vip/6njv7z.jpg)
 
-THe runtime of cutset conditioning on a general CSP is $O(d^c (n-c)d^2)$
+THe runtime of cutset conditioning on a general CSP is $O(d^c (n-c)d^2)$.
 
 ## Local Search
 
-Local search works by iterative improvement - starting with some random assignment to values then repeatedly selecting the variable that violates the most constraints and resetting it to the value that violates the fewest constraints (a policy known as the **min-conﬂicts heuristic**)
+Local search works by iterative improvement: starting with some random assignment to values then repeatedly selecting the variable that violates the most constraints and resetting it to the value that violates the fewest constraints (a policy known as the **min-conﬂicts heuristic**.
 
-Local search appears to run in almost constant time and have a high probability of success not only for N-queens with arbitrarily large N, but also for any randomly generated CSP.
+Local search appears to run in almost constant time and have a high probability of success not only for N-queens with arbitrarily large N, but also for any randomly generated CSP. However, there do have a narrow range of ratio where  the time complexity is infeasible.
 
-But incomplete and suboptimal. Sometimes expensive.
+Incomplete and suboptimal. Sometimes expensive.

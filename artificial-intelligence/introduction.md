@@ -8,13 +8,17 @@
 
 **Environment type:**
 
+* Fully vs Partially observable
+
 - Deterministic vs. Stochastic
 
   The outcome of an action is completely determined by the state of the environment and the action taken by an agent.
 
 - Episodic vs. Sequential
 
-  Short-term actions do not have long-term consequences.
+  Episodic environment can be divided into episodes which have no influence on each other
+
+  Short-term actions do not have long-term consequences
 
 - Static vs. Dynamic
 
@@ -22,7 +26,11 @@
 
 - Discrete vs. Continuous
 
-  The state of the environmement.
+  The distinct states of the environmement is finite/infinite
+
+> **Playing soccer**: Partially observable, stochastic, dynamic, sequential, continous
+>
+> **Shopping for used books on the internet**: Partially observable, stochastic, dynamic, ~~episodic~~ sequential
 
 **World:** an environmant and the agents that reside within it create a world.
 
@@ -32,7 +40,7 @@
 
 **Utility-based agents:** compares the desirability of different environment states via a utility function. This allows the comparison of different goal states and action sequences and tradeoffs between different goals. **Example:** ADC.
 
-**Planning agent:** maintain a model of the world and use this model to simulate performing various actions. Then, the agent can determine hypothesized consequences of the actions and select the best one.
+**Goal-based agents**: makes decisions in order to achieve a set of predefined goals, in addition to maintaining internal state.
 
 **Problem-solving agents:**
 
