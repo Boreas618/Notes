@@ -24,7 +24,7 @@ The SDN approach:
 
 <img src="https://p.ipic.vip/5awbi5.png" alt="Screenshot 2023-06-03 at 1.11.32 AM" style="zoom:25%;" />
 
-The routing device performs forwarding only, while the remote controller computes and distributes forwarding tables.
+The routing device performs forwarding only, while the **remote controller** computes and distributes forwarding tables.
 
 The control-plane approach shown in the figure above is at the heart of **software-defined networking (SDN)**. The controller that computes forwarding tables and interacts with routers is implemented in software.
 
@@ -69,7 +69,7 @@ An **output port** stores packets received from the switching fabric and transmi
 The routing processor performs control-plane functions. In traditional routers, it executes the routing protocols, maintains routing tables and attached link state information, and computes the forwarding table for the router. In SDN routers, the routing processor is responsible for communicating with the remote controller in order to (among other activities) receive forwarding table entries computed by the remote controller, and install these entries in the router’s input ports.
 
 * Destination-based forwarding: deciding the output port by the destination
-* Gennralized forwarding: deciding the output port by multiple factors
+* Generalized forwarding: deciding the output port by multiple factors
 
 ### Input Port Processing and Destination-Based Forwarding
 
@@ -242,7 +242,7 @@ The subnet gets allocated portion of its provider ISP's address space.
 
 ![Screenshot 2023-06-04 at 12.52.33 AM](https://p.ipic.vip/ec8t3i.png)
 
-What if an organization from ISP I switches to another ISP? We need more specific routes.
+What if an organization from one ISP switches to another ISP? We need more specific routes.
 
 ![Screenshot 2023-06-04 at 12.56.34 AM](https://p.ipic.vip/qtoshu.png)
 
@@ -545,3 +545,4 @@ BGP advertising paths to different destinations network prefixes (e.g., to a des
 > Once the decision is made, ISP A will start forwarding the customer's data to the 172.16.0.0/16 network via the selected path.
 >
 > This is how BGP, as a path vector protocol, advertises and selects paths to different network prefixes. And in this case, the network prefix is 172.16.0.0/16, which represents a network with a large number of host addresses.
+

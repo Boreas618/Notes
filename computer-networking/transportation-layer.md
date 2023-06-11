@@ -48,11 +48,9 @@ TCP also provides congestion control. This is done by regulating the rate at whi
 
 ## Mutiplexing and Demultiplexing
 
-Extending the host-to-host delivery service provided by the network layer to a process-to-process delivery service for applications running on the hosts.
+The transport layer receives segements from the network layer and deliver these segments to the processes.
 
-The transport layer receives segements fromt the network layer and deliver these segments to the processes.
-
-A process can have one or more sockets. The transport layer in the receiving host does not actually deliver data directly to a process, but instead to an intermediary socket.
+A process can have one or more sockets. The transport layer in the receiving host does not actually deliver data directly to a process, **but instead to an intermediary socket.**
 
 > A process **can** have one or more sockets
 >
@@ -84,13 +82,13 @@ We can associate a specific port number to this UDP socket via the socket `bind(
 clientSocket.bind(('', 19157))
 ```
 
-**A UDP socket is fully identified by a *two-tuple* consisting of a destination IP address and a destination port number.**
+**A UDP socket is fully identified by a *3-tuple* consisting of a destination IP address, a destination port number and th e protocol. **
 
-A UDP communication is fully identified by a four-tuple consisting of a source IP address, source port number, destination IP address, and destination port number. The source IP address and port number are needed because the destination may need to send some information back to the source.
+**A UDP communication** is fully identified by a 5-tuple consisting of a source IP address, source port number, destination IP address, destination port number and protocol. The source IP address and port number are needed because the destination may need to send some information back to the source.
 
 **Connection-Oriented Mutiplexing and Demutiplexing**
 
-A TCP socket is identified by a ***four-tuple***: (source IP address, source port number, destination IP address, destination port number)
+A TCP socket is identified by a ***5-tuple***: (source IP address, source port number, destination IP address, destination port number, protocol)
 
 In contrast with UDP, two arriving TCP segments with different source IP addresses or source port numbers will (with the exception of a TCP segment carrying the original connection- establishment request) be directed to two different sockets.
 
@@ -113,7 +111,7 @@ In contrast with UDP, two arriving TCP segments with different source IP address
   connectionSocket, addr = serverSocket.accept()
   ```
 
-* Also, the transport layer at the server notes the following four values in the connection-request segment: (1) the source port number in the segment, (2) the IP address of the source host, (3) the destination port number in the segment, and (4) its own IP address. The newly created connection socket is identified by these four values.
+* Also, the transport layer at the server notes the following four values in the connection-request segment: (1) the source port number in the segment, (2) the IP address of the source host, (3) the destination port number in the segment, and (4) its own IP address. The newly created connection socket is identified by these four values plus the protocol.
 
 **Web Servers and TCP**
 
@@ -124,7 +122,7 @@ They are all based on TCP.
 
 ## Connectionless Transport: UDP
 
-UDP takes messages from the application process, attaches source and destination port number fields for the multiplexing/demultiplexing service, adds two other small fields, and passes the resulting segment( datagram more specificly) to the network layer. The network layer encapsulates the transport-layer segment into an IP datagram(packet more specificly) and then makes a best-effort attempt to deliver the segment to the receiving host.
+UDP takes messages from the application process, attaches **source and destination port number** fields for the multiplexing/demultiplexing service, adds two other small fields, and passes the resulting segment( datagram more specificly) to the network layer. The network layer encapsulates the transport-layer segment into an IP packet and then makes a best-effort attempt to deliver the packet to the receiving host.
 
 Why some application developer chooses UDP rather than TCP?
 
@@ -151,23 +149,148 @@ In the receiver side, all 16-bit words are added, including the checksum. The ex
 
 Although UDP provides error checking, it does not do anything to recover from an error. Some implementations of UDP simply discard the damaged segment; others pass the damaged segment to the application with a warning.
 
+## Connection-Oriented Transportation: TCP
+
+### The TCP Connection
+
+* Full-duplex service
+* Point-to-point
+
+Once the data passes through the socket, the data is in the hands of TCP running in the client. TCP directs this data to the connection's send buffer, which is one of the buffers that is set aisde during the initial three-way handshake. From time to time, TCP will grab chunks of data from the send buffer and pass the data to the network layer.
+
+The maximum amount of data that can be grabbed and placed in a segment is limited by the **maximum segment size (MSS)**. The MSS is typically set by first determining the length of the largest link-layer frame that can be sent by the local sending host (the so-called **maximum transmission unit, MTU**), and then setting the MSS to ensure that a TCP segment (when encapsulated in an IP datagram) plus the TCP/IP header length (typically 40 bytes) will fit into a single link-layer frame.
+
+TCP pairs each chunk of client data with a TCP header, thereby forming **TCP segments**. The segments are passed down to the network layer, where they are separately encapsulated within network-layer IP datagrams. The IP datagrams are then sent into the network. When TCP receives a segment at the other end, the segment’s data is placed in the TCP connection’s receive buffer.
+
+TCP is buffer capable. TCP entity can choose to buffer prior to sending or not. Buffering reduces overhead (fewer headers), but increases delay.
+
+The connection can be constructed either passively or actively. In a passive manner, the TCP receives a connection segment. In a active manner, the TCP executes some connect primitives.
+
+![Screenshot 2023-05-26 at 8.12.09 PM](https://p.ipic.vip/wbsjve.png)
+
+### TCP Segment Structure
+
+<img src="https://p.ipic.vip/mmiq60.png" alt="Screenshot 2023-05-26 at 8.15.22 PM" style="zoom:50%;" />
+
+The 4-bit **header length field** specifies the length of the TCP header in 32-bit words. The TCP header can be of variable length due to the TCP options field. (Typically, the options field is empty, so that the length of the typical TCP header is 20 bytes.)
+
+The optional and variable-length **options field** is used when a sender and receiver negotiate the maximum segment size (MSS) or as a window scaling factor for use in high-speed networks. A timestamping option is also defined
+
+The **flag field** contains 6 bits. 
+
+* The **ACK bit** is used to indicate that the value carried in the acknowledgment field is valid; that is, the segment contains an acknowledgment for a segment that has been successfully received. 
+* The **RST**, **SYN**, and **FIN** bits are used for connection setup and teardown. 
+* The **CWR** and **ECE** bits are used in explicit congestion notification. 
+* Setting the **PSH** bit indicates that the receiver should pass the data to the upper layer immediately. 
+* Finally, the **URG** bit is used to indicate that there is data in this segment that the sending-side upper-layer entity has marked as “urgent.” 
+* The location of the last byte of this urgent data is indicated by the 16-bit **urgent data pointer field**. TCP must inform the receiving-side upper- layer entity when urgent data exists and pass it a pointer to the end of the urgent data. (In practice, the **PSH**, **URG**, and the urgent data pointer are not used. However, we mention these fields for completeness.)
+
+**Sequence Numbers and Acknowledgement Numbers**
+
+TCP views data as an unstructured, but ordered, stream of **bytes**. The sequence number is viewed upon the byte, **not segment**.
+
+The **sequence number for a segment** is therefore the byte-stream number of the first byte in the segment. 
+
+Each of the segments that arrive from Host B has a sequence number for the data flowing from B to A. **The acknowledgment number that Host A puts in its segment is the sequence number of the next byte Host A is expecting from Host B.**
+
+In truth, both sides of a TCP connection randomly choose an initial sequence number. This is done to minimize the possibility that a segment that is still present in the network from an earlier, already-terminated connection between two hosts is mistaken for a valid segment in a later connection between these same two hosts (which also happen to be using the same port numbers as the old connection)
+
+**A Case Study for Sequence and Acknowledgment Numbers**
+
+<img src="https://p.ipic.vip/z7v9jt.png" alt="Screenshot 2023-05-30 at 4.40.57 PM" style="zoom:50%;" />
+
+The third segment intends to acknowledge the data it has received from the server. It also has a sequence number but the data is empty. But because TCP has a sequence number field, the segment needs to have some sequence number.
+
+### Round-Trip Time Estimation and Timeout
+
+$$
+EstimatedRTT= (1-\alpha)\cdot EstimatedRTT+\alpha \cdot SampleRTT
+$$
+
+The recommended value of α is $\alpha = 0.125$.
+
+In statistics, such an average is called an **exponential weighted moving average (EWMA)**. The word “exponential” appears in EWMA because the weight of a given *SampleRTT* decays exponentially fast as the updates proceed
+
+n addition to having an estimate of the RTT, it is also valuable to have a measure of the variability of the RTT. **DevRTT** is an estimate of how much *SampleRTT* typically deviates from *EstimatedRTT*:
+$$
+DevRTT = (1-\beta) \cdot DevRTT + \beta\cdot |SampleRTT-EstimatedRTT|
+$$
+The recommended value of β is 0.25.
+
+**Setting and Managing the Retransmission Timeout Interval**
+
+The timeout should be set a little bit larger than the average estimated RTT.
+$$
+TimeoutInterval=EstimatedRTT+4⋅DevRTT
+$$
+
+### Flow Control
+
+Receiver buffer overflow.
+
+TCP provides flow control by having the *sender* maintain a variable called the **receive window**. Informally, the receive window is used to give the sender an idea of how much free buffer space is available at the receiver.
+$$
+rwnd=RcvBuffer−[LastByteRcvd−LastByteRead]
+$$
+Host B tells Host A how much spare room it has in the connection buffer by placing its current value of *rwnd* in the receive window field of every segment it sends to A. Initially, Host B sets *rwnd = RcvBuffer*. Note that to pull this off, Host B must keep track of several connection-specific variables.
+
+By keeping the amount of unacknowledged data less than the value of *rwnd*, Host A is assured that it is not overflowing the receive buffer at Host B.
+
+The problem is, the rand is sent by sending data or ACK. If the buffer is full and then emptied, no message will be sent to the sender to inform it that the buffer is available again.
+
+To solve this problem, the TCP specification requires Host A to continue to send segments with one data byte when B’s receive window is zero. These segments will be acknowledged by the receiver. Eventually the buffer will begin to empty and the acknowledgments will contain a nonzero *rwnd* value.
+
+### TCP Connection Management
+
+**Eatablish a TCP connection:**
+
+* SYN = 1 
+
+  a random sequence number *client_isn*
+
+  **SYN segment**
+
+* Server allocate TCP buffers and variables to the connection
+
+  Send a connection-granted segment to the client 
+
+  SYN = 1  
+
+  The acknowledgment field of the TCP segment header is set to *client_isn+1*
+
+  Choose its own sequence number *server_isn*
+
+  **SYNACK** segment
+
+* Client allocate TCP buffers and variables to the connection
+
+  SYN = 0
+
+  The acknowledgment field of the TCP segment header is set to *server_isn+1*
+
+  May carry client-to-server data in the segment payload.
+
+In the following message exchanges, the SYN bit will be set up to zero.
+
+**Close a TCP connection**
+
+The client issues a close command. A special segment with FIN set to 1 is sent to the server. The client goes into FIN_WAIT_1. The ACK is received  and the client proceeds to FIN_WAIT_2. When the client receives FIN from the server, goes into TIME_WAIT and wait 30 seconds to enter CLOSED.
+
+<img src="https://p.ipic.vip/0yfopp.png" alt="Screenshot 2023-06-10 at 11.54.01 PM" style="zoom:50%;" />
+
+If a illegal connection establishing segment is received by the server, a special segment with RST set to 1 is sent back to client.
+
 ## Principles of Reliable Data Transfer
 
 Assumption:  packets will be delivered in the order in which they were sent, with some packets possibly being lost; that is, the underlying channel will not reorder packets.
 
-**ARQ(Automatic Repeat reQuest) protocols**: 
-
-Use both **positive acknowledgements** and **negative acknowledgements**. Repeat the message in error.
+**ARQ(Automatic Repeat reQuest) protocols**: Use both **positive acknowledgements** and **negative acknowledgements**. Repeat the message in error.
 
 Capabilities needed:
 
 * **Error detection**
 
-* **Receiver feedback**
-
-  The positive (ACK) and negative (NAK) acknowledgment replies in the message-dictation scenario are examples of such feedback. 
-
-  Simply one bit.
+* **Receiver feedback** The positive (ACK) and negative (NAK) acknowledgment replies in the message-dictation scenario are examples of such feedback. Simply one bit.
 
 * **Retransmission**
 
@@ -201,6 +324,8 @@ Two pipelined error recovery can be identified: **Go-Back-N** and **selective re
 
 ### Go-Back-N
 
+**Assumption:** the buffer holds packets rather than bytes.
+
 The sender is allowed to transmit multiple packets (when available) without waiting for an acknowledgment, but is constrained to have no more than some maximum allowable number, $N$, of unacknowledged packets in the pipeline.
 
 ![Screenshot 2023-05-23 at 9.17.21 PM](https://p.ipic.vip/e13cdw.png)
@@ -214,7 +339,7 @@ We define `base` to be the sequence number of the oldest unacknowledged packet a
 | $[nextseqnum, base+N-1]$ | Can be sent                   |
 | $[base+N, \infty]$       | Cannot be used                |
 
-$N$ is referred to as the **window size**. GBN protocol is a **sliding-window protocol**.  
+$N$ is referred to as the **window size**. **GBN** protocol is a **sliding-window protocol**.  
 
 Why we need to limit the window size to $N$ ?
 
@@ -254,7 +379,7 @@ This individual, as-needed, retransmission will require that the receiver *indiv
 
 The receiver reacknowledges (rather than ignores) already received packets with certain sequence numbers *below* the current window base. You should convince yourself that this reacknowledgment is indeed needed.
 
-![Screenshot 2023-05-26 at 7.38.30 PM](https://p.ipic.vip/mjqqb5.png)
+<img src="https://p.ipic.vip/mjqqb5.png" alt="Screenshot 2023-05-26 at 7.38.30 PM" style="zoom:50%;" />
 
 If a packet has been received by the receiver in SR, and the same packet is sent once again, the receiver would typically acknowledge it as if it was the first time the packet was received. If the sender doesn't receive the acknowledgement, the window won't move forward.
 
@@ -262,88 +387,15 @@ If a packet has been received by the receiver in SR, and the same packet is sent
 
 ![Screenshot 2023-05-26 at 7.55.09 PM](https://p.ipic.vip/a956cn.png)
 
-## Connection-Oriented Transportation: TCP
 
-### The TCP Connection
 
-* Full-duplex service
-* Point-to-point
-
-Once the data passes through the socket, the data is in the hands of TCP running in the client. TCP directs this data to the connection's send buffer, which is one of the buffers that is set aisde during the initial three-way handshake. From time to time, TCP will grab chunks of data from the send buffer and pass the data to the network layer.
-
-The maximum amount of data that can be grabbed and placed in a segment is limited by the **maximum segment size (MSS)**. The MSS is typically set by first determining the length of the largest link-layer frame that can be sent by the local sending host (the so-called **maximum transmission unit, MTU**), and then setting the MSS to ensure that a TCP segment (when encapsulated in an IP datagram) plus the TCP/IP header length (typically 40 bytes) will fit into a single link-layer frame.
-
-TCP pairs each chunk of client data with a TCP header, thereby forming **TCP segments**. The segments are passed down to the network layer, where they are separately encapsulated within network-layer IP datagrams. The IP datagrams are then sent into the network. When TCP receives a segment at the other end, the segment’s data is placed in the TCP connection’s receive buffer.
-
-TCP is buffer capable. TCP entity can choose to buffer prior to sending or not. Buffering reduces overhead (fewer headers), but increases delay.
-
-![Screenshot 2023-05-26 at 8.12.09 PM](https://p.ipic.vip/wbsjve.png)
-
-### TCP Segment Structure
-
-<img src="https://p.ipic.vip/mmiq60.png" alt="Screenshot 2023-05-26 at 8.15.22 PM" style="zoom:50%;" />
-
-The 4-bit **header length field** specifies the length of the TCP header in 32-bit words. The TCP header can be of variable length due to the TCP options field. (Typically, the options field is empty, so that the length of the typical TCP header is 20 bytes.)
-
-The optional and variable-length **options field** is used when a sender and receiver negotiate the maximum segment size (MSS) or as a window scaling factor for use in high-speed networks. A timestamping option is also defined
-
-The **flag field** contains 6 bits. 
-
-* The **ACK bit** is used to indicate that the value carried in the acknowledgment field is valid; that is, the segment contains an acknowledgment for a segment that has been successfully received. 
-* The **RST**, **SYN**, and **FIN** bits are used for connection setup and teardown. 
-* The **CWR** and **ECE** bits are used in explicit congestion notification. 
-* Setting the **PSH** bit indicates that the receiver should pass the data to the upper layer immediately. 
-* Finally, the **URG** bit is used to indicate that there is data in this segment that the sending-side upper-layer entity has marked as “urgent.” 
-* The location of the last byte of this urgent data is indicated by the 16-bit **urgent data pointer field**. TCP must inform the receiving-side upper- layer entity when urgent data exists and pass it a pointer to the end of the urgent data. (In practice, the **PSH**, **URG**, and the urgent data pointer are not used. However, we mention these fields for completeness.)
-
-**Sequence Numbers and Acknowledgement Numbers**
-
-TCP views data as an unstructured, but ordered, stream of **bytes**.
-
-The sequence number is viewed upon the byte, **not segment**.
-
-The **sequence number for a segment** is therefore the byte-stream number of the first byte in the segment. 
-
-Each of the segments that arrive from Host B has a sequence number for the data flowing from B to A. **The acknowledgment number that Host A puts in its segment is the sequence number of the next byte Host A is expecting from Host B.**
-
-In truth, both sides of a TCP connection randomly choose an initial sequence number. This is done to minimize the possibility that a segment that is still present in the network from an earlier, already-terminated connection between two hosts is mistaken for a valid segment in a later connection between these same two hosts (which also happen to be using the same port numbers as the old connection)
-
-**A Case Study for Sequence and Acknowledgment Numbers**
-
-![Screenshot 2023-05-30 at 4.40.57 PM](https://p.ipic.vip/z7v9jt.png)
-
-The third segment intends to acknowledge the data it has received from the server. It also has a sequence number but the data is empty. But because TCP has a sequence number field, the segment needs to have some sequence number.
-
-### Round-Trip Time Estimation and Timeout
-
-$$
-EstimatedRTT= (1-\alpha)\cdot EstimatedRTT+\alpha \cdot SampleRTT
-$$
-
-The recommended value of α is $\alpha = 0.125$.
-
-In statistics, such an average is called an **exponential weighted moving average (EWMA)**. The word “exponential” appears in EWMA because the weight of a given *SampleRTT* decays exponentially fast as the updates proceed
-
-n addition to having an estimate of the RTT, it is also valuable to have a measure of the variability of the RTT. **DevRTT** is an estimate of how much *SampleRTT* typically deviates from *EstimatedRTT*:
-$$
-DevRTT = (1-\beta) \cdot DevRTT + \beta\cdot |SampleRTT-EstimatedRTT|
-$$
-The recommended value of β is 0.25.
-
-**Setting and Managing the Retransmission Timeout Interval**
-
-The timeout should be set a little bit larger than the average estimated RTT.
-$$
-TimeoutInterval=EstimatedRTT+4⋅DevRTT
-$$
-
-### Reliable Data Transfer
+## TCP Reliable Data Transfer
 
 A singe-timer practice:
 
-![Screenshot 2023-05-30 at 5.40.48 PM](https://p.ipic.vip/63hqi2.png)
+<img src="https://p.ipic.vip/63hqi2.png" alt="Screenshot 2023-05-30 at 5.40.48 PM" style="zoom:50%;" />
 
-You can imagine that the timer is associated with the oldest unacknowledged segment.
+**You can imagine that the timer is associated with the oldest unacknowledged segment.**
 
 A subtlety:
 
@@ -372,70 +424,6 @@ If the TCP sender receives three duplicate ACKs for the same data, it takes this
 
 Considering the introduction of selective acknowledgement policy, TCP’s error-recovery mechanism is probably best categorized as a hybrid of GBN and SR protocols.
 
-### Flow Control
-
-Receiver buffer overflow.
-
-TCP provides flow control by having the *sender* maintain a variable called the **receive window**. Informally, the receive window is used to give the sender an idea of how much free buffer space is available at the receiver.
-$$
-rwnd=RcvBuffer−[LastByteRcvd−LastByteRead]
-$$
-Host B tells Host A how much spare room it has in the connection buffer by placing its current value of *rwnd* in the receive window field of every segment it sends to A. Initially, Host B sets *rwnd = RcvBuffer*. Note that to pull this off, Host B must keep track of several connection-specific variables.
-
-By keeping the amount of unacknowledged data less than the value of *rwnd*, Host A is assured that it is not overflowing the receive buffer at Host B.
-
-The problem is, the rand is sent by sending data or ACK. If the buffer is full and then emptied, no message will be sent to the sender to inform it that the buffer is available again.
-
-To solve this problem, the TCP specification requires Host A to continue to send segments with one data byte when B’s receive window is zero. These segments will be acknowledged by the receiver. Eventually the buffer will begin to empty and the acknowledgments will contain a nonzero *rwnd* value.
-
-### TCP Connection Management
-
-**Eatablish a TCP connection:**
-
-* Step1: 
-
-  SYN = 1 
-
-  a random sequence number 
-
-  **SYN segment**
-
-* Step2: 
-
-  Allocate TCP buffers and variables to the connection
-
-  Send a connection-granted segment to the client 
-
-  SYN = 1  
-
-  The acknowledgment field of the TCP segment header is set to *client_isn+1*
-
-  Choose its own sequence number
-
-  **SYNACK** segment
-
-* Step3:
-
-  Allocate TCP buffers and variables to the connection
-
-  SYN = 0
-
-  The acknowledgment field of the TCP segment header is set to *server_isn+1*
-
-  May carry client-to-server data in the segment payload.
-
-In the following message exchanges, the SYN bit will be set up to zero.
-
-**Close a TCP connection**
-
-The client issues a close command. A special segment with FIN set to 1 is sent to the server. The client goes into FIN_WAIT_1. The ACK is received  and the client proceeds to FIN_WAIT_2. When the client receives FIN from the server, goes into TIME_WAIT and wait 30 seconds to enter CLOSED.
-
-<img src="https://p.ipic.vip/jvkehg.png" alt="Screenshot 2023-05-30 at 7.20.22 PM" style="zoom:50%;" />
-
-![Screenshot 2023-05-30 at 7.25.30 PM](https://p.ipic.vip/bqy60u.png)
-
-If a illegal connection establishing segment is received by the server, a special segment with RST set to 1 is sent back to client.
-
 ## Principles of Congestion Control
 
 * End-to-end congestion control
@@ -446,13 +434,9 @@ If a illegal connection establishing segment is received by the server, a specia
 
   With network-assisted congestion control, routers provide explicit feedback to the sender and/or receiver regarding the congestion state of the network.
 
-For network-assisted congestion control, congestion information is typically fed back from the network to the sender in one of two ways. Direct feedback may be sent from a network router to the sender. This form of notification typically takes the form of a choke packet (essentially
-
-saying, “I’m congested!”). The second and more common form of notification occurs when a router marks/updates a field in a packet flowing from sender to receiver to indicate congestion. Upon receipt of a marked packet, the receiver then notifies the sender of the congestion indication. This latter form of notification takes a full round-trip time.
+For network-assisted congestion control, congestion information is typically fed back from the network to the sender in one of two ways. Direct feedback may be sent from a network router to the sender. This form of notification typically takes the form of a choke packet (essentially saying, “I’m congested!”). The second and more common form of notification occurs when a router marks/updates a field in a packet flowing from sender to receiver to indicate congestion. Upon receipt of a marked packet, the receiver then notifies the sender of the congestion indication. This latter form of notification takes a full round-trip time.
 
 ## TCP Congestion Control
-
-TCP must use end-to-end congestion control rather than network-assisted congestion control, since the IP layer provides no explicit feedback to the end systems regarding network congestion.
 
 The approach taken by TCP is to have each sender limit the rate at which it sends traffic into its connection as a function of perceived network congestion.
 
@@ -518,7 +502,7 @@ The TCP sender, in turn, reacts to an ACK with an ECE congestion indication by h
 
 ## The Sockets Interface
 
-<img src="https://p.ipic.vip/jstaky.png" alt="Screenshot 2023-05-03 at 12.50.20 PM" style="zoom:50%;" />
+<img src="https://p.ipic.vip/e0m23m.png" alt="Screenshot 2023-06-11 at 4.01.01 AM" style="zoom:50%;" />
 
 From the perspective of the Linux kernel, a socket is an end point for communication. From the perspective of a Linux program, a socket is an open file with a corresponding descriptor.
 

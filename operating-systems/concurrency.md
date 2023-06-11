@@ -347,51 +347,96 @@ On most processor architectures, a simple (but inefficient) way to swap to the n
 
 To optimize this, some OSs like Linux imitate the interrupt hardware's fashion of saving context. That's to say, saving return instruction pointer and the `eflags` register first and then calls the `pushad` instruction to save the state of the general-purpose registers. This way, whether a thread was suspended by a hardware interrupt or a software call (like `thread_switch()`), resuming the thread is the same operation.
 
-## Combing Kernel Threads and Single Threaded User Processes
+Switching Thread is much cheaper than switching processes. There is no need to change address space. Switching threads in user-space is even cheaper.
 
-Like a TCB, a PCB for a single-threaded process must store the processor registers when the process’s thread is not running. In addition, the PCB has information about the process’s address space.
+In Linux and pintos, we adopt the simple one-to-one threading model:
 
-An important detail is that many processor architectures have extra co-processor state, e.g., floating registers, for user-level code. Typically, the operating system kernel does not make use of floating point operations. Therefore, the kernel does not need to save those registers when switching between kernel threads, but it does save and restore them when switching between processes.
+<img src="https://p.ipic.vip/f4kkqc.png" alt="image-20230611012613977" style="zoom:50%;" />
 
-When switching from user thread to kernel handler (triggered by software interrupt), the IP, eflags and stack pointer are pushed onto the kernel stack.
+Every user thread has its kernel thread. In kernel, we use the kernel stack and in user mode we use the user stack. 
 
-However, switching between a kernel thread and a kernel handler is slightly different:
+However, we can try out this model:
 
-**Entering the handler.** When an interrupt or exception occurs, if the processor detects that it is already in kernel mode (by inspecting the eflags register), it just pushes the instruction pointer and eflags registers (but not the stack pointer) onto the existing stack. On the other hand, if the hardware detects that it is switching from user-mode to kernel-mode, then the processor also changes the stack pointer to the base of the interrupt stack and pushes the original stack pointer along with the instruction pointer and eflags registers onto the new stack.
+<img src="https://p.ipic.vip/nduys5.png" alt="image-20230611012833249" style="zoom:50%;" />
 
-**Returning from the handler.** When the iret instruction is called, it inspects both the current eflags register and the value on the stack that it will use to restore the earlier eflags register. If the mode bit is identical, then iret just pops the instruction pointer and eflags register and continues to use the current stack. On the other hand, if the mode bit differs, then the iret instruction pops not only the instruction pointer and eflags register, but also the saved stack pointer, thus switching the processor’s stack pointer to the saved one.
+We can perform user-level yield without borthering switching to the kernel mode. However, this model has some downsides. If one user thread initiates an I/O job, all the other user threads will also go to sleep. The reason is that they share a common kernel thread.
 
-## Implementing Multi-Threaded Processes
+To address this issue, we propose Many-toMany model:
 
-### Implementing Multi-Threaded Processes Using Kernel Threads
+<img src="https://p.ipic.vip/pdn8cv.png" alt="image-20230611013251886" style="zoom:50%;" />
 
-User-level threads are abstractions provided by a library in user space (like POSIX threads, or "pthreads") and their scheduling can be managed within the user space. Multiple user-level threads can be multiplexed on a single kernel thread, or they can be implemented with a 1:1 mapping to kernel threads, depending on the threading library and the specific operating system's implementation.
+# Mutual Exclusion
 
-User-level threads still rely on kernel services, such as for creating or destroying threads, or for handling synchronization primitives like mutexes or semaphores. These services are typically accessed by making system calls into the kernel.
+**Atomic Operations**: Either complete or not.
 
-To create a thread, the user library allocates a user-level stack for the thread and then does a system call into the kernel. The kernel allocates a TCB and interrupt stack, and arranges the state of the thread to start execution on the user-level stack at the beginning of the requested procedure. The kernel needs to store a pointer to the TCB in the process control block; if the process exits, the kernel must terminate any other threads running in the process.
+Many instructions are not atomic: double-precision floating point store often not atomic. 
 
-### Implementing User-Level Threads Without Kernel Support
+**Synchronization**: using atomic operations to ensure cooperation between threads.
 
-The basic idea is simple. The thread library instantiates all of its data structures within the process: TCBs, the ready list, the finished list, and the waiting lists all are just data structures in the process’s address space. Then, calls to the thread library are just procedure calls, akin to how the same functions are implemented within a multi-threaded kernel.
+**Mutual Exclusion**: ensuring that only one thread does a particular thing at a time.
 
-A limitation of green threads is that the operating system kernel is unaware of the state of the user-level ready list. If the application performs a system call that blocks waiting for I/O, the kernel is unable to run a different user-level thread. Likewise, on a multiprocessor, the kernel is unable to run the different threads running within a single process on different processors.
+**Race condition**: Two threads attempting to **access same data** simultaneously with one of them performing a write.
 
-You can achieve preemptive user-level threads by means of signals
+## Semaphore
 
-1. The user-level thread library makes a system call to register a timer signal handler and signal stack with the kernel.
-2. When a hardware timer interrupt occurs, the hardware saves P ’s register state and runs the kernel’s handler.
-3. Instead of restoring P ’s register state and resuming P where it was interrupted, the kernel’s handler copies P ’s saved registers onto P ’s signal stack.
-4. The kernel resumes execution in P at the registered signal handler on the signal stack.
-5. The signal handler copies the processor state of the preempted user-level thread from the signal stack to that thread’s TCB.
-6. The signal handler chooses the next thread to run, re-enables the signal handler (the equivalent of re-enabling interrupts), and restores the new thread’s state from its TCB into the processor. execution with the state (newly) stored on the signal stack.
+Semaphores are a kind of generalized lock. They are the main synchronization primitive used in original UNIX.
 
-### Implementing User-Level Threads With Kernel Support
+**Definition**: a Semaphore has a non-negative integer value and supports the following two operations:
 
-**Hybrid Thread Join** A special case: the objective thread has finished before the current thread calling `thread_join()`. In this case, we can store the exit status of the objective thread in the process's address space.
+* `Down()` or `P()`: an atomic operation that waits for semaphore to become positive, then decrements it by 1
+* `Up()` or `V()`: an atomic operation that increments the semaphore by 1, waking up a waiting P, if any.
 
-**Per-Processor Kernel Threads** When the application starts up, the user-level thread library creates one kernel thread for each processor on the host machine. As long as there is no other activity on the system, the kernel will assign each of these threads a processor. Each kernel thread executes the **user-level** scheduler in parallel: pull the next thread off the user-level ready list, and run it. Because thread scheduling decisions occur at user level, they can be flexible and application-specific; for example, in a parallel graph algorithm, the programmer might adjust the priority of various threads based on the results of the computation on other parts of the graph.
+### Two Uses of Semaphores
 
-**Scheduler Activations**
+* **Mutual Exclusion** : also called "Binary Semaphore" or "mutex". Can be used for mutual exclusion, just like a lock.
 
-Based on the above approach, the user-level thread scheduler is notified (or activated) for every kernel event that might affect the user-level thread system.
+* **Scheduling Constraints** (initial value = 0)
+
+  Allow thread 1 to wait for a signal from thread 2
+
+  Thread 2 schedules thread 1 when a given event occurs
+
+  Example: suppose you had to implement ThreadJoin which must wait fro thread to terminate:
+
+  ```pseudocode
+  Initial value of semaphore = 0
+  
+  ThreadJoin {
+  	semaP(&mysem);
+  }
+  
+  ThreadFinish {
+  	semaV(&mysem);
+  }
+  ```
+
+Use semaphores for bounded buffer:
+
+* Consumer must wait for producer to fill buffers, if none full (scheduling constraint)
+
+* Producer must wait for consumer to empty buffers, if all full (scheduling constraint)
+
+* Only one thread can manipulate buffer queue at a time (mutual exclusion)
+
+```c
+Semaphore fullSlots = 0; 	// Initially, no coke
+Semaphore emptySlots = bufSize;				// Initially, num empty slots
+Semaphore mutex = 1;	// No one using machine
+
+Producer(item) {
+  semaP(&emptySlots);	// Wait until space
+  semaP(&mutex);	// Wait until machine free
+  Enqueue(item);	
+  semaV(&mutex);	
+  semaV(&fullSlots);	// Tell consumers there is more coke
+}
+
+Consumer() {	
+  semaP(&fullSlots);	// Check if there’s a coke	
+  semaP(&mutex);	// Wait until machine free	
+  item = Dequeue();	
+  semaV(&mutex);	
+  semaV(&emptySlots);	// tell producer need more
+  return item;
+}
+```

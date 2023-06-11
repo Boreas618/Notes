@@ -1,23 +1,33 @@
-# Probability Recap
+# Probability
 
+The general situation is:
+
+* Observed variables (evidence)
+* Unobserved variables
+* Model: Agent knows something about how the know variables relate to the unknown variables
+
+A **distribution** is a table of probabilities of values.
+
+A **joint distribution** over a set of random variables: $X_1, X_2,...,X_n$ specifies a real number for each assignment.
+
+A **probabilistic model** is a joint distribution over a set of random variables.
+
+An **event** is a set E of outcomes $P(E)=\sum_{(x_1,\dots,x_n)\in E} P(x_1, \dots, x_n)$.
+
+**Marginal** distributions are sub-tables which eliminate variables.
+
+For continuous variables, the $P$ is a density. It integrates to 1.
+
+**Conditional distributions** are probability distributions over some variables given fixed values of others.
 $$
 P(A|B)=\frac{P(AB)}{P(B)}
 $$
 
 $$
-P(X_1,X_2,\dots X_n) = \prod_{i=1}^{n} P(X_i|X_1,\dots,X_{i-1})
+P(x_1,x_2,\dots x_n) = \prod_{i=1}^{n} P(x_i|x_1,\dots,x_{i-1})
 $$
 
-$$X$$,$$Y$$ independent if and only if:
-$$
-\forall x,y:P(x,y)=P(x)P(y)
-$$
-$$X$$ and $$Y$$ are conditionally independent given $$Z$$ if and only if:
-$$
-\forall x,y,z:P(x,y|z)=P(x|z)P(y|z)
-$$
-
-# Probabilistic Inference
+## Probabilistic Inference
 
 Our model is a **joint distribution**, i.e. a table of probabilities which captures the likelihood of each possible **outcome**, also known as an **assignment**.
 
@@ -29,19 +39,82 @@ Three types of variables:
 - Evidence variables $$e_i$$
 - Hidden variables
 
+General idea: compute distribution on query variable by fixing evidence variables and summing over hidden variables
+
 **Example:** we want to calculate $$P(W|S=winter)$$
 
 ![Untitled](https://p.ipic.vip/u99fjt.png)
 
-# Bayes NetS
+The wrost-case time complexity is $O(d^n)$ and the space complexity is $O(d^n)$ because we have to store the whole table.
+
+## Independece
+
+$$X$$,$$Y$$ independent if and only if:
+$$
+\forall x,y:P(x,y)=P(x)P(y)
+$$
+$$X$$ and $$Y$$ are conditionally independent given $$Z$$ if and only if:
+$$
+\forall x,y,z:P(x,y|z)=P(x|z)P(y|z)
+$$
+
+We can leverage independence to decompose a big problem into subproblems.
+$$
+P(Toothache, Catch, Cavity, Weather) = P(Toothache, Catch, Cavity) P(Weather)
+$$
+With conditional independence, we can further reduce the size of joint distribution table:
+$$
+P(Toothache|Catch, Cavity)=P(Toothache|Cavity)
+$$
+Because toothache is conditionally independent of catch given cavity.
+
+## Bayes' Rule
+
+Bayes' Rule:
+$$
+P(x|y)=\frac{P(y|x)}{P(y)}P(x)
+$$
+This rule let us build one conditional from its reverse.
+
+Assessing diagnostic probability from causal probability:
+$$
+P(cause|effect)=\frac{P(effect|cause)P(cause)}{P(effect)}
+$$
+Posterior(conditional) probability is prior(unconditional) probability with some evidence. Here, $P(effect)$ is already known. We can simply denote it with a normalization factor $\alpha$.
+$$
+P(cause|effect)=\alpha \times P(effect|cause)P(cause)
+$$
+This is an example of a naive Bayes model:
+
+<img src="https://p.ipic.vip/xg8rtd.png" alt="Screenshot 2023-06-09 at 10.39.09 PM" style="zoom:50%;" />
+
+Total number of parameters is linear in $n$. Can greatly reduce the table size. BUt it is under the assumption that each effect is conditionally independent of all other effects given the cause.
+
+# Bayes Nets
 
 Not impractical to store the **entire** joint distribution in the memory.
 
-Bayes' Net is a directed, acyclic graph. Each node in the graph represents a single random variables and each directed edge represents one of the conditional probability distributions we choose to store. An edge from node $$A$$ to node $$B$$ indicates that we store the probability table for $$P(B | A)$$.  A condition probability table is stored underneath the node. The CPT is a collection of distributions over $$X$$, one for each combination of parents' values.
+Bayes' Net is a directed, acyclic graph. 
+
+An edge from node $$A$$ to node $$B$$ indicates that we store the probability table for $$P(B | A)$$.  
+
+A condition probability table is stored underneath the node. 
+
+The CPT is a collection of distributions over $$X$$, one for each combination of parents' values.
 
 There's a conditional distribution for each node. That is a collection of distributions over $$X$$, one for each combination of parents' values.
 
 Only distributions whose variables are absolutely independent can be represented by a Bayes' net without arcs.
+
+**Compactness** Bayes Net is featured for its compactness. A CPT for a Boolean $X_i$ with $k$ Boolean parents has $2^k$ rows for **the combinations of parent values**. We just need to store $2^k$ entries for a boolean $X_i$. (Each row requires one number $p$ for $X_i = true$ and the number for $X_i = false$ is just $1 − p$) If each variable has no more than $k$ parents, the complete network requires $O(n \cdot 2^k)$ numbers. That is linear to $n$ as opposed to $O(2^n)$ for the full distribution.
+
+**Global Semantics** Global semantics defines the full joint distribution as the product of the local conditional distributions:
+$$
+P(x_1,x_2,\dots ,x_n) =\prod_{i=1}^{n}P(x_i|parents(X_i))
+$$
+**Local Semantics** Each node is conditionally independent of its nondescendants given its parents.
+
+**Global Semantics $\Leftrightarrow$ Local Semantics**
 
 <img src="https://p.ipic.vip/qed6ki.png" alt="Screenshot 2023-04-27 at 10.38.06 AM" style="zoom:50%;" />
 
