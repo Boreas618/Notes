@@ -1,6 +1,4 @@
-# Introduction
-
-## Introduction to Database Systems
+# Introduction to Database Systems
 
 **Data VS Information:** Information is data presented in context.
 
@@ -37,11 +35,11 @@ Rows\&Columns forming relations. Keys\&Foreign keys to link relations.
 
     SQL
 
-## Database development process
+# Database development process
 
 <img src="https://p.ipic.vip/2wi6b9.jpg" alt="Screenshot 2023-02-27 at 1.28.19 PM.png" data-size="original">
 
-### Conceptual Design
+## Conceptual Design
 
 Construction of a model of the data used in the database - independent of all physical considerations.
 
@@ -55,7 +53,7 @@ Blue diamond: mandatory
 
 White diamond: optional
 
-### Logical Design
+## Logical Design
 
 Construction of a (relational) model of the data based on the conceptual design
 
@@ -81,7 +79,7 @@ However, this design does not include their attributes or keys. To address this 
 
 This revised version provides a clear and concise explanation of the two designs while maintaining coherence.
 
-### Physical Design
+## Physical Design
 
 For a specific DBMS
 
@@ -109,7 +107,7 @@ Selection of types may improve data integrity
 
 ![Screenshot 2023-02-27 at 2.41.53 PM.png](https://p.ipic.vip/l4acnj.png)
 
-#### Physical Design Decisions
+### Physical Design Decisions
 
 **(1)How to Store “Look Up”**
 

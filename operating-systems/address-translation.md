@@ -12,11 +12,55 @@ The translation is usually implemented in hardware, and the operating system ker
 * **Compact transalation tables** Space overhead
 * **Portability**
 
+Addresses can be translated to final values anywhere in the path from source program to the in-memory binary image.
+
+<img src="https://p.ipic.vip/72ggqw.png" alt="image-20230629020250798" style="zoom: 33%;" />
+
+## Translation Strategies
+
+* Uniprogramming: no translation or protection
+
+* Primitive Multiprogramming: use loader/linker to adjust addresses while program loaded into memory
+
+  The translation is done by a linker-loader (relocation)
+
+  No protection
+
+* Multiprogramming with Protection
+
+  Base and bound
+
+  ...
+
 # Towards Flexible Address Translation
 
 Address translation with base and bounds registers
 
+* Fragmentation problem over time
+
+  Not every process is same size Þ memory becomes fragmented over time
+
+* Missing support for sparse address space
+
+  Would like to have multiple chunks/program (Code, Data, Stack, Heap, etc)
+
+* Hard to do inter-process sharing
+
+  Want to share code segments when possible
+
+  Want to share memory between processes
+
+  Helped by providing multiple segments per process
+
 ![Screenshot 2023-05-25 at 11.13.01 PM](https://p.ipic.vip/08j9wf.png)
+
+We can assign segments for code, stack, data, ...
+
+We mantain base and bounds for different regions of a signle program.
+
+x86 Example: `mov [es:bx],ax`.
+
+![Screenshot 2023-06-29 at 2.15.19 AM](https://p.ipic.vip/emei15.png)
 
 ## Sgemented Memory
 
@@ -28,7 +72,7 @@ In addition, the operating system can assign different segments different permis
 
 ![Screenshot 2023-05-25 at 11.20.11 PM](https://p.ipic.vip/ocs8d1.png)
 
-If a program branches into or tries to load data from one of these gaps, the hardware will generate an exception, trapping into the operating system kernel. On UNIX systems, this is still called a *segmentation fault*.
+If a program branches into or tries to load data from one of these gaps, the hardware will generate an exception, trapping into the operating system kernel. On UNIX systems, this is called a *segmentation fault*.
 
 - [x] Share regions
 

@@ -9,9 +9,9 @@ Program with good locality tend to access the same or nearby set of data items o
 - Static RAM
 - Dynamic RAM
 
-**SRAM**
+SRAM is used for cache memories, both on and off the CPU chip. DRAM is used for the main memory plus the frame buffer of a graphics system.
 
-SRAM is used for cache memories, both on and off the CPU chip. DRAM is used for the main memory plus the frame buffer of a graphics system. 
+**SRAM**
 
 SRAM stores each bit in a bistable memory cell. Each cell is implemented with a six-transistor circuit.
 
@@ -35,7 +35,9 @@ The row address i is called a RAS (row access strobe) request and the column add
 
 DRAM chips are packaged in memory modules that plug into expansion slots in the main system board (mother board).
 
-Core i7 systems use the 240-pin dual inline memory module(DIMM), which transfers data to and from the memory controller in 64-bit chunks. Each DRAM chip has a total of 8M supercells. Each DRAM chip has 512MB.
+Core i7 systems use the 240-pin dual inline memory module(DIMM), which transfers data to and from the memory controller in 64-bit chunks. Each DRAM chip has a total of 8M supercells. 
+
+There are a total of 8 DRAM chips. For each chip, there are 8M supercells. For each supercell, there are 8 cells. The total size of the memory module is $\frac{8\times8M\times8}{8} =64MB$.
 
 ![Untitled](https://p.ipic.vip/yk4m87.png)
 
@@ -108,7 +110,7 @@ An SSD package consists of one or more flash memory chips and **a flash translat
 
 $page\rightarrow block \rightarrow falsh\space memory$
 
-A flash memory consists of a sequence of B blocks, where each block consists of P pages. Typically, pages are 512 bytes to 4KB in size, and s block consists of 32-128 pages, with total block sizes ranging from 16KB to 512 KB. Data are read and written in units of pages. A page can be written only after the entire block to which it belongs has been erased.(All bits in the block set to 1) It takes a long time.
+A flash memory consists of a sequence of B blocks, where each block consists of P pages. Typically, pages are 512 bytes to 4KB in size, and a block consists of 32-128 pages, with total block sizes ranging from 16KB to 512 KB. Data are read and written in units of pages. A page can be written only after the entire block to which it belongs has been erased.(All bits in the block set to 1) It takes a long time.
 
 ### Storage Technology Trends
 
@@ -146,9 +148,7 @@ When a miss occurs, the cache at level `k` fetches the block containing `d` from
 
 An empty cache: cold cache; Compulsory/Cold misses
 
-Placement policy: A small subset of the blocks at level k for the data to be cached
-
-Conflict misses: multiple blocks are attempting to occupy the same block.
+Conflict misses:  occur in a set-associative or direct-mapped cache when multiple blocks of memory map to the same set or slot in the cache and they continually evict each other.
 
 Capacity misses: the size of the working set exceeds the size of the cache.
 

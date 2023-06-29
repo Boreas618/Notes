@@ -14,6 +14,12 @@ Two important network-layer functions:
 
 The routing algorithm function in one router communicates with the routing algorithm function in other routers to compute the values for its forwarding table.
 
+**Connection-oriented packet forwarding**
+
+The concept of virtual circuit number:
+
+<img src="https://p.ipic.vip/5m9vm9.png" alt="Screenshot 2023-06-11 at 9.30.08 PM" style="zoom:50%;" />
+
 ### Two Approaches of Determining Forward Table
 
 The traditional approach:
@@ -356,6 +362,8 @@ Routing algorithm goal is to determine "good" paths (equivalently, routes), from
 
 ### Dijkstra's Link-state Routing Algorithm
 
+Every node dsitribute their link state information throughout the network.
+
 A centralized algorithm: network topology and link costs are known to all nodes.
 
 The centralized feature is accomplished via "link state broadcast" and all nodes have same info.
@@ -464,13 +472,13 @@ What happens if router malfunctions, or is compromised?
 
 We aggregate the routers into regions known as "autonomous systems" (AS) (a.k.a "domains")
 
-**intra-AS (a.k.a "intra-domain")**  routing among routers within same AS ("network") 
+**Intra-AS (a.k.a "intra-domain")**  routing among routers within same AS ("network") 
 
 * All routers in AS must run same intra-domain protocol
 * Routers in different AS can run different intra-domain routing protocols
 * **Gateway router**: at "edge" of its own AS, has link to routers in other AS'es
 
-**inter-AS (a.k.a "inter-domain")** routing among AS'es
+**Inter-AS (a.k.a "inter-domain")** routing among AS'es
 
 * Gateways performs inter-domain routing (as well as intra-domain routing)
 
@@ -532,17 +540,70 @@ Gateway routers run both eBGp and iBGP protocols.
 
 BGP advertising paths to different destinations network prefixes (e.g., to a destination/16 network). Therefore, BGP is called a "path vector" protocol.
 
-> We have four ISPs: ISP A, ISP B, ISP C, and ISP D, with AS numbers AS1, AS2, AS3, and AS4, respectively.
->
-> Now, let's say ISP D provides service for a large organization with a network address of 172.16.0.0/16. This means the organization has 65,534 possible host addresses within that network.
->
-> If a customer of ISP A wants to send data to a host in the organization served by ISP D, ISP A would need to know the path to the 172.16.0.0/16 network.
->
-> Here, ISP B and ISP C both have established BGP peering with ISP D, and they have learned about the path to the 172.16.0.0/16 network. ISP B knows the path AS2 - AS4 and ISP C knows the path AS3 - AS4. When they exchange routing information with ISP A, they advertise these paths.
->
-> So, ISP A receives these advertisements and learns about the paths to the 172.16.0.0/16 network: AS1 - AS2 - AS4 and AS1 - AS3 - AS4. ISP A can then decide which path to use based on its BGP policies.
->
-> Once the decision is made, ISP A will start forwarding the customer's data to the 172.16.0.0/16 network via the selected path.
->
-> This is how BGP, as a path vector protocol, advertises and selects paths to different network prefixes. And in this case, the network prefix is 172.16.0.0/16, which represents a network with a large number of host addresses.
+![Screenshot 2023-06-12 at 8.47.49 PM](https://p.ipic.vip/wrdkx9.png)
 
+When AS3 gateway 3a advertises **path AS3, X** to AS2 gateway 2c, AS3 promises to AS2 it will forward datagrams towards X.
+
+### BGP protocol messages
+
+BGP messages exchanged between peers over TCP connection.
+
+BGP messages:
+
+**OPEN**: opens TCP connection to remote BGP peer and authenticates sending BGP peer.
+
+**UPDATE**: advertises new path (or withdraw old)
+
+**KEEPALIVE**: keeps connection alive in absence of UPDATES; also ACKs OPEN request
+
+**NOTIFICATION**: reports errors in previous msg; also used to close connection
+
+### Path Advertisement
+
+BGP advertised path: prefix + attributes
+
+* Path prefix: destination being advertised
+
+* Two important attributes:
+
+  **AS-PATH**: list of ASes through which prefix advertisements has passed
+
+  **NEXT_HOP**: indicates specific internal-AS router to next hop AS
+
+BGP is policy-based:
+
+* Routers receiving route advertisement to destination X uses policy to accept/reject a path (e.g., never route through AS W or country Y).
+
+* Router uses policy to decide whether to advertise a path to neighboring AS Z.
+
+![Screenshot 2023-06-12 at 8.59.52 PM](https://p.ipic.vip/d1l6dh.png)
+
+Gateway routers may learn about multiple paths to destination.
+
+### Routing Policy
+
+<img src="https://p.ipic.vip/lbm5f5.png" alt="Screenshot 2023-06-12 at 9.03.45 PM" style="zoom:50%;" />
+
+Assuming that w is not a customer of B, B doesn't advertise BAw to C. C will route Caw to get to w.
+
+x does not want to route from B to C via x, so x will not advertise to B a route to C.
+
+### Hot potato routing
+
+Choose local gateway that has least intra-domain cost.
+
+![Screenshot 2023-06-12 at 9.11.28 PM](https://p.ipic.vip/oq0ywc.png)
+
+2d will choose to route to X via 2a.
+
+## Internet Control Message Protocol
+
+ICMP is used by hosts and routers to communicate network-level information.
+
+Error reporting: unreachable host, network, port, protocol
+
+Echo request/reply (used by ping)
+
+ICMP messages are carried in IP datagrams, protocol number: 1
+
+ICMP message: type, code plus header and first 8 bytes of IP datagram causing error.

@@ -4,7 +4,9 @@
 
 An entity set is a collection of entities of the same type.
 
-<img src="https://p.ipic.vip/1mhtty.png" alt="Screenshot 2023-03-05 at 7.00.34 PM.png" style="zoom: 35%;" /><img src="https://p.ipic.vip/jzw23u.jpg" alt="Screenshot 2023-03-05 at 7.35.51 PM.png" style="zoom: 30%;" />
+<img src="https://p.ipic.vip/1mhtty.png" alt="Screenshot 2023-03-05 at 7.00.34 PM.png" style="zoom: 35%;" />
+
+<img src="https://p.ipic.vip/jzw23u.jpg" alt="Screenshot 2023-03-05 at 7.35.51 PM.png" style="zoom: 30%;" />
 
 The same entity set can participate in the following:
 

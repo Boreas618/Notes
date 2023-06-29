@@ -16,7 +16,7 @@ The main purpose of ownership is to manage heap data
 
 ### The `String` Type
 
-As opposed to string literals, a second string type `String` si introduced. This type manages data allocated on the heap and as such is able to store an amount of text that is unknown to us at compile time. You can create a String from a string literal using the from function
+As opposed to string literals, a second string type `String` is introduced. This type manages data allocated on the heap and as such is able to store an amount of text that is unknown to us at compile time. You can create a String from a string literal using the from function
 
 ```rust
 let mut s = String::from("hello");
@@ -46,7 +46,7 @@ When `s2` and `s1` go out of scope, they will both try to free the same memory. 
 
 To ensure memory safety, after the line let s2 = s1;, Rust considers s1 as no longer valid.
 
-Beyond shallow copy, Rust invalidates the first variable. It is called a move.
+**Beyond shallow copy, Rust invalidates the first variable. It is called a move.**
 
 Rust will never automatically create “deep” copies of your data. Therefore, any automatic copying can be assumed to be inexpensive in terms of runtime performance.
 
@@ -138,9 +138,7 @@ Rust has a feature for using a value without transferring ownership, called refe
 ```rust
 fn main() {
     let s1 = String::from("hello");
-
     let len = calculate_length(&s1);
-
     println!("The length of '{}' is {}.", s1, len);
 }
 
@@ -149,7 +147,7 @@ fn calculate_length(s: &String) -> usize {
 }
 ```
 
-![Screenshot 2023-04-25 at 3.12.00 AM](https://p.ipic.vip/gc90t5.png)
+<img src="https://p.ipic.vip/gc90t5.png" alt="Screenshot 2023-04-25 at 3.12.00 AM" style="zoom:50%;" />
 
 The `&s1` syntax lets us create a reference that *refers* to the value of `s1` but does not own it
 
@@ -162,7 +160,6 @@ But **we’re not allowed to modify something we have a reference to**.
 ```rust
 fn main() {
     let mut s = String::from("hello");
-
     change(&mut s);
 }
 
@@ -201,7 +198,7 @@ fn main() {
 cannot borrow `x` as mutable because it is also borrowed as immutable
 ```
 
-Note that a reference’s scope starts from where it is introduced and continues through the last time that reference is used. For instance, this code will compile because the last usage of the immutable references, the println!, occurs before the mutable reference is introduced:
+Note that a reference’s scope starts from where it is introduced and continues through the last time that reference is used. For instance, this code will compile because the last usage of the immutable references, the `println!`, occurs before the mutable reference is introduced:
 
 ```rust
 let mut s = String::from("hello");

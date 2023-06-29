@@ -448,13 +448,15 @@ We define a loss event at the sender side. The loss event is either a timeout ot
 
 If there's no loss events, TCP will increse its congestion window size. Because TCP uses acknowledgments to trigger (or clock) its increase in congestion window size, TCP is said to be **self-clocking**. The faster the ACKs arrive, the faster the window size grows.
 
-**A lost segment implies congestion, and hence, the TCP sender’s rate should be decreased when a segment is lost.**
+A lost segment implies congestion, and hence, the TCP sender’s rate should be decreased when a segment is lost.
 
-**An acknowledged segment indicates that the network is delivering the sender’s segments to the receiver, and hence, the sender’s rate can be increased when an ACK arrives for a previously unacknowledged segment.** 
+An acknowledged segment indicates that the network is delivering the sender’s segments to the receiver, and hence, the sender’s rate can be increased when an ACK arrives for a previously unacknowledged segment. 
 
 ### Slow Start
 
-When a TCP connection begins, the value of *cwnd* is typically initialized to a small value of 1 MSS. Thus, in the **slow-start** state, the value of *cwnd* begins at 1 MSS and increases by 1 MSS every time a transmitted segment is first acknowledged.
+When a TCP connection begins, the value of *cwnd* is typically initialized to a small value of 1 MSS. Thus, in the **slow-start** state, the value of *cwnd* begins at 1 MSS (i.e. one segment) and increases by 1 MSS every time **a transmitted segment** is first acknowledged.
+
+**This means the cwnd doubles per RTT.**
 
 <img src="https://p.ipic.vip/enebed.png" alt="Screenshot 2023-05-31 at 8.51.34 PM" style="zoom: 25%;" />
 

@@ -2,9 +2,11 @@
 
 Often, we want to r**eason about a sequence** of observations(A changing world).
 
-# Markov Models
+# Markov(Transition) Models
 
- Value of $X$ at a given time is called the **state**
+**Markov assumption**: the current state depends only on a finite fixed number of states.
+
+Value of $X$ at a given time is called the **state**
 
 **Structure**: chain
 
@@ -62,7 +64,7 @@ It can be solved (even not linearly independenet).
 
 Alternatively, we run simulation for a long (ideally infinite) time for better resource requirement.
 
-# Hidden Markov Models Formulation
+# Hidden Markov Models 
 
 Markov chains are not so useful for most agents. We need observations to update our beliefs. If we want to get the next state, we must have an observation of the current state. 
 
@@ -73,15 +75,14 @@ Markov chains are not so useful for most agents. We need observations to update 
 An HMM us defined by:
 
 * Initial distribution $P(X_1)$
-
 * Transitions: $P(X_t|X_{t-1})$
-
 * Emissions: $P(E_t|X_t)$
 
-HMMs have two important independence properties:
+Sensor Markov Assumption: $P(E_t|X_{0:t}, E_{0:t-1})=P(E_t|X_t)$, $P(E_t|X_t)$ is also called observation model.
 
-* Markov hidden process: future depends on past via the present
-* Current observation independent of all given current state
+State independent of all past states and all past evidence given the previous state.
+
+Evidence is independent of all past states and all past evidence given the current state.
 
 ## Example of a LLM
 
@@ -95,7 +96,24 @@ Here, $E$ is a word like "cat". $X$ is a vector we don't know the actual meaning
 
 # Inference
 
-We are given evidence at each time and want to know $B_t(X)=P(X_t|e_{1:t})$
+**Two main kinds of job:**
+
+* **Filtering or State estimation** are given evidence at each time and want to know $B_t(X)=P(X_t|e_{1:t})$
+
+* **Prediction** given the evidence gathered, can I determine my future state? $P(X_{t+k}|e_{1:t})$ with $k ≥ 0$
+
+## Prediction
+
+The job of prediction is rather simple. We start by 
+$$
+P(X_2|e_{1})=\sum _{x1}P(X_2,x_1|e_{1})=\sum_{x_1}\frac{P(X_2,x_1,e_1)}{P(e_1)}=\sum_{x_1} \frac{P(X_2|x_1)P(x_1)P(e_1|x_1)}{P(e_1)}=\sum_{x_1}P(X_2|x_1)P(x_1|e_1)
+$$
+
+$$
+P(X_{t+1}|e_{1:t})=\sum_{x_t} P(X_{t+1}|X_t)P(X_t|e_{1:t})
+$$
+
+## Filtering
 
 The idea is to start with $P(X_1)$ and derive $B_t$ in terms of $B_{t-1}$.
 
@@ -103,7 +121,7 @@ There are two steps: **Passage of Time** and **Observation**
 
 <img src="https://p.ipic.vip/nxycpj.png" alt="Screenshot 2023-06-03 at 5.55.22 PM" style="zoom:50%;" />
 
-## Passage of Time 
+### Passage of Time 
 
 The idea is to introduce a new variable.
 
@@ -141,7 +159,7 @@ B^{'}(X_{t+1}) = \sum_{x_t} P(X_{t+1}|X_{t}) B(x_t)
 $$
 The basic idea for this formula is that the beliefs are pushed through the transitions.
 
-## Observation
+### Observation
 
 The base case is to derive $P(X_1|e_1)$ based on $P(X_1)$ and $P(E|X_1)$.
 

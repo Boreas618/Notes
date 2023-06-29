@@ -286,3 +286,48 @@ Both query and reply messages have the same format. This semantics of the variou
 Register your domain name at a registrar. A **registrar** is a commercial entity that verifies the uniqueness of the domain name, enters the domain name into the DNS database, and collects a small fee from you for its services.
 
 When you register the domain name **networkutopia.com** with some registrar, you also need to provide the registrar with the names and IP addresses of your primary and secondary authoritative DNS servers.
+
+# Email
+
+## Components
+
+Three major components:
+
+* User agent
+* Mail servers
+* Simple mail transfer protocol
+
+**Mail servers**: 
+
+* **mailbox** contains incoming messages for user
+* **message queue** of outgoing (to be sent) mail messages
+
+**SMTP protocol** between mail servers to send email messages. The client is the sending mail server and the server is the receiving mail server.
+
+<img src="https://p.ipic.vip/4e3kqd.png" alt="Screenshot 2023-06-13 at 6.50.07 PM" style="zoom:50%;" />
+
+## SMTP
+
+Uses TCP to reliably transfer email message from client(mail server initiating connection) to server over port 25.
+
+Three phases of transfer:
+
+* SMTP handshaking (greeting)
+* SMTP transfer of messages
+* SMTP closure
+
+### Comparision with HTTP
+
+HTTP is client pull while SMTP is client push.
+
+They both have ASCII command/response interaction and status codes.
+
+In HTTP, each object encapsulated in its own response message while in SMTP multiple objects sent in multipart messages.
+
+SMTP uses persistent connections. SMTP requires message (header&body) to be in 7-bit ASCII. SMTP server uses CRLF.CRLF to determine end of message.
+
+### Message Format
+
+SMTP is the protocol for exchanging e-mail messages.
+
+![Screenshot 2023-06-13 at 7.03.34 PM](https://p.ipic.vip/kk0h5y.png)
