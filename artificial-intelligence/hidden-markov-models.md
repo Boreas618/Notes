@@ -1,8 +1,8 @@
 # Reasoning over Time or Space
 
-Often, we want to r**eason about a sequence** of observations(A changing world).
+Often, we want to r**eason about a sequence** of observations (A changing world).
 
-# Markov(Transition) Models
+# Markov (Transition) Models
 
 **Markov assumption**: the current state depends only on a finite fixed number of states.
 
@@ -26,20 +26,20 @@ Each time step only depends on the previous. This is called the (first order) Ma
 
 <img src="https://p.ipic.vip/flqut7.png" alt="Screenshot 2023-05-29 at 1.08.34 PM" style="zoom:50%;" />
 
-State $X=\{rain,sun\}$
+* **State** $X=\{rain,sun\}$
 
-Initial distribution 1.0 $sun$
+* **Initial distribution** 1.0 $sun$
 
-CPT $P(X_t|X_{t-1})$
+* **CPT** $P(X_t|X_{t-1})$
 
 | $X_{t-1}$ | $X_t$  | $P(X_t|X_{t-1})$ |
-| --------- | ------ | ---------------- |
-| $sun$     | $sun$  | 0.9              |
-| $sun$     | $rain$ | 0.1              |
-| $rain$    | $sun$  | 0.3              |
-| $rain$    | $rain$ | 0.7              |
+| :-------: | :----: | :--------------: |
+|   $sun$   | $sun$  |       0.9        |
+|   $sun$   | $rain$ |       0.1        |
+|  $rain$   | $sun$  |       0.3        |
+|  $rain$   | $rain$ |       0.7        |
 
-Given $P(X_1)$, $P(x_t)=\sum_{x_{t-1}} P(x_{t-1}, x_t) = \sum_{x_{t-1}} P(x_t|x_{t-1})P(x_{t-1})$.
+Given $P(X_1)$, $P(x_t)=\sum_{x_{t-1}} P(x_t, x_{t-1}) = \sum_{x_{t-1}} P(x_t|x_{t-1})P(x_{t-1})$.
 
 ## Stationary Distributions
 
@@ -49,9 +49,9 @@ The distribution we end up with is called the **stationary distribution** $P_{\i
 
 What's $P(X)$ at time $t=infinity$?
 $$
-P_{\infin}(X)=\sum_{x} P(X|x)P_{\infin}(x)
+P_{\infin}(X)=P_{\infin+1}(X)=\sum_{x} P(X|x)P_{\infin}(x)
 $$
-Is actually a linear system.
+is actually a linear system.
 $$
 P_{\infin}(sun) = P(sun|sun) P_{\infin}(sun) + P(sun|rain) P_{\infin}(rain)
 $$
@@ -68,11 +68,11 @@ Alternatively, we run simulation for a long (ideally infinite) time for better r
 
 Markov chains are not so useful for most agents. We need observations to update our beliefs. If we want to get the next state, we must have an observation of the current state. 
 
-**Hidden Markov Models (HMMs)** Underlying Markov chain over states X. You observe outputs (effects) at each time step.
+**Hidden Markov Models (HMMs)** are based on a Markov chain over states X. At each time step, the model observes outputs (**E**vidence).
 
 <img src="https://p.ipic.vip/9wzf66.png" alt="Screenshot 2023-05-30 at 1.03.11 PM" style="zoom:50%;" />
 
-An HMM us defined by:
+An HMM is defined by:
 
 * Initial distribution $P(X_1)$
 * Transitions: $P(X_t|X_{t-1})$
@@ -80,27 +80,27 @@ An HMM us defined by:
 
 Sensor Markov Assumption: $P(E_t|X_{0:t}, E_{0:t-1})=P(E_t|X_t)$, $P(E_t|X_t)$ is also called observation model.
 
-State independent of all past states and all past evidence given the previous state.
+State $X_n$ is independent of **all past states and all past evidence ($X_{0:n-2}$ $E_{0:n-1}$)** given the previous state $X_{n-1}$.
 
 Evidence is independent of all past states and all past evidence given the current state.
 
 ## Example of a LLM
 
-**Naive stage**: Learn the probability of a word given previous words $P(X_t|X_{t-1})$
+**Naive stage**: Learn the probability of a word given previous words $P(X_t|X_{t-1})$  The probability is usually given by a softmax operation.
 
 **Further**: Learn parameters of a HMM. $P(X_1)$ $P(X_t|X_{t-1})$ $P(E_t|X_t)$
 
-Here, $E$ is a word like "cat". $X$ is a vector we don't know the actual meaning.
+Here, $E$ is a word like "cat". $X$ is a vector (hidden state) we don't know the actual meaning.
 
 **Finally**: Learn probability of a word given all previous words $P(X_i|X_1,...,X_{i-1})$
 
 # Inference
 
-**Two main kinds of job:**
+There are two main types of jobs:
 
-* **Filtering or State estimation** are given evidence at each time and want to know $B_t(X)=P(X_t|e_{1:t})$
+* **Prediction**: Given the evidence gathered, the goal is to determine the future state, $P(X_{t+k} | e_{1:t})$ where k ≥ 0.
 
-* **Prediction** given the evidence gathered, can I determine my future state? $P(X_{t+k}|e_{1:t})$ with $k ≥ 0$
+- **Filtering or State Estimation**: The objective is to determine $B_t(X) = P(X_t | e_{1:t})$ based on the evidence available at each time.
 
 ## Prediction
 

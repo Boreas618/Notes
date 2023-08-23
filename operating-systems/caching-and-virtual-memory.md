@@ -122,8 +122,8 @@ With the advent of multi-core processors around 2003, the performance gap betwee
 
 Computer programs that are well-written tend to have good locality, meaning they reference data items that are close to one another or the same.
 
-- Temporal locality(same items)
-- Spatial locality(adjacent items)
+- Temporal locality (same items)
+- Spatial locality (adjacent items)
 
 A funtion visits each element of a vector sequentially is said to have a **stride-1 reference pattern**. As the stride increases, the spatial locality decreases.
 
@@ -151,6 +151,8 @@ An empty cache: cold cache; Compulsory/Cold misses
 Conflict misses:  occur in a set-associative or direct-mapped cache when multiple blocks of memory map to the same set or slot in the cache and they continually evict each other.
 
 Capacity misses: the size of the working set exceeds the size of the cache.
+
+Coherence
 
 **Cache Management**
 
@@ -273,6 +275,10 @@ Sometimes add the space of the cache may cause a lower hit rate.
 
 **Working Set Model**: Most programs will have an inflection point, or knee of the curve, where a critical mass of program data can just barely fit in the cache. This critical mass is called the program’s *working set*. As long as the working set can fit in the cache, most references will be a cache hit, and application performance will be good.
 
+![Screenshot 2023-06-30 at 2.32.28 AM](https://p.ipic.vip/68e2oo.png)
+
+
+
 **Zipf Model**: For web proxy page, frequency of visits to the $k$th most popular page $\propto \frac{1}{k^{\alpha}}$
 
 A characteristic of a Zipf curve is a **heavy-tailed distribution**. Although a significant number of references will be to the most popular items, a substantial portion of references will be to less popular ones. 
@@ -306,62 +312,332 @@ Here, the word size is 8 bytes and the block size is 64 bytes. The read throughp
 
 Miss rate in this case is a better predictor of performance than the total number of memory accesses.
 
-# Case Study: Memory-Mapped Files
+# Demanding Paging
 
-Read/write system calls allow the program to work on a copy of file data. The file is copied on to the buffer.
+What does OS do on a Page Fault?
 
-For a **memory-mapped file**, the operating system provides the illusion that the file is a program segment; like any memory segment, the program can directly issue instructions to load and store values to the memory. Unlike file read/write, the load and store instructions do not operate on a copy; they directly access and modify the contents of the file (**a reflection**) , treating memory as a write-back cache for disk.
+* Choose an old page to replace 
+* If old page modified (“D=1”), write contents back to disk
+* Change its PTE and any cached TLB to be invalid
+* Load new page into memory from disk
+* Update page table entry, invalidate TLB for new entry
+* Continue thread from original faulting location
 
-We saw an example of a memory-mapped file in the previous chapter: the program executable image. 
+While pulling pages off disk for one process, OS runs another process from ready queue. The suspended process sits on wait queue.
 
-> The key difference between the two approaches is that read/write system calls involve explicit I/O operations, while memory-mapped files use the virtual memory system to handle I/O implicitly. In other words, with memory-mapped files, the process operates on the file as though it were in memory, and the operating system takes care of fetching pages from disk and writing them back as needed.
+What data structure maps non-resident pages to disk?
 
-## Implementation
+```c
+FindBlock(PID, page#) → disk_block
+```
 
-A system call to map the file into a portion of the virtual address space. Initialize a set of page table entries for that region of the virtual address space. Each entry is **invalid**.
+Some OSs utilize spare space in PTE for paged blocks. It is like the PT, but is purely software. We can also store it in memory or even hash table. The backing store is also desired which saves a copy of code to swap file.
 
-When the process issues an instruction that touches an invalid mapped address, a sequence of events occurs
+<img src="https://p.ipic.vip/lzq572.png" alt="image-20230630021120680" style="zoom:50%;" />
 
-**TLB miss.** The hardware looks the virtual page up in the TLB, and finds that there is not a valid entry. This triggers a full page table lookup in hardware.
+**Finding a Free Frame during a Page Fault**:
 
-> TLB is a cache for page table
+- During a page fault, when the OS needs to allocate a new frame for a page that is not currently in physical memory, it searches for a free frame.
+- The OS typically maintains a data structure called a "free list" that keeps track of available free frames in the system.
+- The free list can be implemented as a linked list, bitmap, or any other suitable data structure that allows efficient management of available frames.
+- When a page fault occurs, the OS selects a free frame from the free list and assigns it to the requested page.
 
-**Page table exception.** The hardware walks the multi-level page table and finds the page table entry is invalid. This causes a hardware *page fault* exception trap into the operating system kernel.
+**Memory Management Strategies to Handle Memory Pressure**:
 
-**Convert virtual address to file offset.** In the exception handler, the kernel looks up in its segment table to find the file corresponding to the faulting virtual address and converts the address to a file offset.
+- Unix-like operating systems often employ a "reaper" mechanism when the available memory becomes too full.
+- The reaper is responsible for identifying and freeing memory that is no longer in active use. It can reclaim memory from terminated or idle processes.
+- To optimize memory utilization, the OS schedules dirty pages (pages modified but not yet written back to disk) to be written back to the disk. This ensures data integrity and frees up memory for other processes.
+- Pages that have not been accessed for a while (considered "clean" or unchanged) can be zeroed out and reclaimed. This technique is known as "page zeroing" or "page aging."
+- If there are no clean pages available or sufficient memory pressure exists, the OS may choose to evict a dirty page (one that has been modified) as a last resort. This involves writing the page back to disk and marking it as available for reuse.
 
-**Disk block read.** The kernel allocates an empty page frame and issues a disk operation to read the required file block into the allocated page frame. While the disk operation is in progress, the processor can be used for running other threads or processes.
+## Preventing Page Fault
 
-**Disk interrupt.** The disk interrupts the processor when the disk read finishes, and the scheduler resumes the kernel thread handling the page fault exception.
+### Compulsory Misses
 
-**Page table update.** The kernel updates the page table entry to point to the page frame allocated for the block and sets the entry to valid.
+Pages that have never been paged into memory before
 
-**Resume process.** The operating system resumes execution of the process at the instruction that caused the exception.
+Prefetching: loading them into memory before needed
 
-**TLB miss.** The TLB still does not contain a valid entry for the page, triggering a full page table lookup.
+Need to predict future somehow!
 
-**Page table fetch.** The hardware walks the multi-level page table, finds the page table entry valid, and returns the page frame to the processor. The processor loads the TLB with the new translation, evicting a previous TLB entry, and then uses the translation to construct a physical address for the instruction.
+### Capacity Misses
 
-To make this work, we need an empty page frame to hold the incoming page from disk. To create an empty page frame, the operating system must:
+Not enough memory. Must somehow increase available memory size.
 
-**Select a page to evict.** Assuming there is not an empty page of memory already available, the operating system needs to select some page to be replaced. We discuss how to implement this selection in Section 9.6.3 below.
+Can we do this?
 
-**Find page table entries that point to the evicted page.** The operating system then locates the set of page table entries that point to the page to be replaced. It can do this with a *core map* — an array of information about each physical page frame, including which page table entries contain pointers to that particular page frame.
+* One option: Increase amount of DRAM (not quick fix!)
+* Another option: If multiple processes in memory: adjust percentage of memory allocated to each one!
 
-**Set each page table entry to invalid.** The operating system needs to prevent anyone from using the evicted page while the new page is being brought into memory. Because the processor can continue to execute while the disk read is in progress, the page frame may temporarily contain a mixture of bytes from the old and the new page. Therefore, because the TLB may cache a copy of the old page table entry, a TLB shootdown is needed to evict the old translation from the TLB.
+### Conflict Misses
 
-**Copy back any changes to the evicted page.** If the evicted page was modified, the contents of the page must be copied back to disk before the new page can be brought into memory. Likewise, the contents of modified pages must also be copied back when the application closes the memory-mapped file.
+Technically, conflict misses don’t exist in virtual memory, since it is a "fully-associative" cache
 
-How do we know some page have been modified?
+### Policy Misses
 
-> Hardware to keep track of which pages have been modified. Most processor architectures reserve a bit in each page table entry to record whether the page has been modified. This is called a *dirty bit*. The operating system initializes the bit to zero, and the hardware sets the bit automatically when it executes a store instruction for that virtual page.
->
-> Since the TLB can contain a copy of the page table entry, the TLB also needs a dirty bit per entry. The hardware can ignore the dirty bit if it is set in the TLB, but whenever it goes from zero to one, the hardware needs to copy the bit back to the corresponding page table entry.
+Caused when pages were in memory, but kicked out prematurely because of the replacement policy
 
-To minimize this delay, the system can proactively clean dirty pages via a background thread. The thread identifies good eviction candidates (e.g., rarely accessed pages), then:
+How to fix? Better replacement policy
 
-1. The kernel marks the page as clean (without changing its content), indicating upcoming disk write-back.
-2. It performs a TLB shootdown, removing the page table entry from the TLB, erasing the old dirty bit.
-3. The kernel writes the page to disk. All changes in CPU's on-chip memory cache and write buffers are ensured to be written back to main memory first.
-4. After disk write, process execution resumes. If the page is modified again, the dirty bit is reset, indicating the page cannot be evicted without saving changes.
+## Replacement Policies
 
+### FIFO (First In, First Out)
+
+Throw out oldest page. Be fair – let every page live in memory for same amount of time.
+
+Bad – throws out heavily used pages instead of infrequently used
+
+### RANDOM
+
+Pick random page for every replacement
+
+Typical solution for TLB’s. Simple hardware
+
+Pretty unpredictable – makes it hard to make real-time guarantees
+
+### MIN (Minimum)
+
+Replace page that won’t be used for the longest time 
+
+Great (provably optimal), but can’t really know future…
+
+But past is a good predictor of the future …
+
+### LRU (Least Recently Used)
+
+Replace page that hasn’t been used for the longest time
+
+Programs have locality, so if something not used for a while, unlikely to be used in the near future.
+
+Seems like LRU should be a good approximation to MIN.
+
+For MIN and LRU, when we add memory the miss rate drops. This is called rate drops. However, for FIFO, this is not necessarily true. This is called Bélády’s anomaly:
+
+<img src="https://p.ipic.vip/sjopmr.png" alt="Screenshot 2023-06-30 at 3.15.53 AM" style="zoom:50%;" />
+
+### Approximating LRU: Clock Algorithm
+
+<img src="https://p.ipic.vip/4w115m.png" alt="Screenshot 2023-06-30 at 1.27.20 PM" style="zoom:50%;" />
+
+**Clock ALgorithm**: Arrange physical pages in circle with single clock hand
+
+* Approximate LRU
+* Replace an old page, not the oldest page
+
+Details:
+
+* Hardware “use” bit per physical page (called “accessed” in Intel architecture):
+
+* Hardware sets use bit on each reference
+
+* If use bit isn’t set, means not referenced in a long time
+
+* Some hardware sets use bit in the TLB; must be copied back to page TLB entry gets replaced
+
+On page fault:
+
+* Advance clock hand (not real time)
+
+* Check use bit:
+
+  1: used recently; **clear and move forward**
+
+  The purpose of this action is to give the page a "second chance". Clearing the bit essentially resets the page's status, giving it an opportunity to be accessed again before it becomes a candidate for replacement. If the page is accessed again before the clock hand comes back to it, the use bit will be set back to 1.
+
+  0: selected candidate for replacement
+
+The Clock Page Replacement Algorithm is designed in such a way that it will eventually find a page to replace, or it could potentially loop indefinitely if all use bits are set (i.e., all pages are being frequently accessed). However, in practice, it's unlikely that all pages are being frequently accessed, so the algorithm will eventually find a page to replace.
+
+**What happens when all use bits are set?**
+
+If all use bits are set, the Clock Algorithm behaves like a First-In, First-Out (FIFO) algorithm. It will keep advancing the clock hand, clearing use bits along the way, until it makes a full loop and comes back to where it started. The first page it encounters with the use bit cleared (because it cleared it in the last loop) becomes the candidate for replacement. This FIFO behavior ensures that a page will eventually be found for replacement.
+
+**What if the clock hand is moving slowly?**
+
+If the clock hand is moving slowly, it might be a good sign. This could mean there are not many page faults occurring, which is usually a sign of efficient memory management. Alternatively, it could mean that the algorithm is finding replacement pages quickly because many pages are not being accessed frequently (their use bits are not set).
+
+**What if the clock hand is moving quickly?**
+
+If the clock hand is moving quickly, it could indicate a problem. This might mean there are a lot of page faults occurring, which can decrease the overall performance of the system. It could also mean that many pages are being accessed frequently (many use bits are set), causing the algorithm to search longer to find a suitable candidate for replacement.
+
+**Partitioning of Pages: Young and Old**
+
+One way to view the clock algorithm is as a crude partitioning of pages into two groups: "young" and "old". Pages with their use bit set (1) can be seen as "young", or recently used, while pages with their use bit cleared (0) can be seen as "old", or not recently used.
+
+### Nth Chance Version of Clock Algorithm
+
+1. For each page, the operating system maintains a counter that tracks the number of "sweeps" or cycles the clock hand has made without the page being used.
+2. When a page fault occurs (i.e., a requested page is not found in memory), the OS checks the use bit of the current page pointed at by the clock hand.
+3. If the use bit is 1 (indicating the page has been used in the last sweep), the OS clears the use bit and resets the counter for that page.
+4. If the use bit is 0 (the page hasn't been used in the last sweep), the OS increments the counter for that page. If the count reaches N, the page is considered for replacement.
+
+A large N will make the algorithm a good approximation to LRU while the OS might have to look a long way (i.e., many clock cycles) to find a page that can be replaced.
+
+The approach also considers whether a page is "dirty" or modified. A page is marked as dirty if it has been modified since it was brought into memory. Replacing a dirty page incurs additional overhead because the changes need to be written back to disk to ensure data integrity. Therefore, the algorithm might give dirty pages an extra chance before replacing them. A common approach is to use N=1 for clean pages and N=2 for dirty pages. The dirty pages are written back to the disk when the counter reaches 1. The reason for this is to ensure that, even if the page gets replaced in the future, the most recent version of the data it contains is preserved on disk.
+
+### Clock-Emulated-M
+
+We don't need hardware-supported "modified" bit. We can emulate it using read-only bit. The algorithm is called **Clock-Emulated-M**.
+
+* Initially, mark all pages as read-only (W to 0), even writable data pages. Further, clear all software versions of the “modified” bit to 0 (page not dirty)
+* Writes will cause a page fault. Assuming write is allowed, OS sets software “modified” bit to 1, and marks page as writable (W to 1).
+* Whenever page written back to disk, clear “modified” bit to 0, mark read-only
+
+We can further emulate the **use** bit. That is called **Clock-Emulated-Use-and-M**.
+
+### Second-Chance List Algorithm
+
+Designed to balance the efficiency of the Least Recently Used (LRU) algorithm with the simplicity of the First-In, First-Out (FIFO) algorithm.
+
+In this algorithm, memory is divided into two parts: the **Active List** and the **Second Chance** (SC) List. The Active List contains pages that can be accessed at full speed and are marked Read/Write (RW), while the SC List contains pages marked as invalid.
+
+**When a page is accessed**:
+
+* First checks if it is in the Active List. If the page is not found there, a Page Fault occurs.
+
+  If a new page needs to be loaded and the Active List is full, the page at the end of the Active List is moved to the front of the SC List and **marked as invalid**. This process is also known as "paging out".
+
+* If the desired page is on the SC List, it is moved to the front of the Active List and **marked as RW**. 
+* If the desired page is not on the SC List, the new page is loaded into the front of the Active List and marked RW. In this case, the LRU (Least Recently Used) page at the end of the SC List is paged out. This is an important distinction from the FIFO policy, which simply removes the oldest page without considering its recent usage (because there's a second chance).
+
+The number of pages assigned to the SC List can be varied. If no pages are assigned to the SC List, the algorithm becomes a FIFO policy. If all pages are assigned to the SC List, the algorithm behaves like LRU but incurs a page fault on every page reference (because it was marked as invalid). An intermediate value is usually chosen to balance the trade-off between disk accesses and overhead from trapping to the operating system.
+
+The advantage of this algorithm is that it reduces disk accesses because a page only goes to disk if it is unused for a long time. The drawback is the increased overhead of trapping to the operating system, representing a trade-off between software efficiency and hardware resources.
+
+### Freelist
+
+When a page is removed from memory by the Clock algorithm, it isn't immediately discarded. Instead, it is added to a freelist, which is essentially a pool of pages that are not currently in use but are kept ready in case they are needed again.
+
+This process of filling the freelist is managed by the "Pageout demon" or "Pageout daemon", which is a background process that runs the Clock algorithm (or other page replacement algorithms) to manage memory allocation and deallocation.
+
+Dirty pages are pages that have been modified since they were loaded into memory. In the context of the Clock algorithm and the freelist, when a dirty page is replaced and moved to the freelist, it starts copying back to disk. This is because, being modified, it contains information that is not yet saved to disk, and losing it could lead to data loss.
+
+## Allocation of Page Frames
+
+Possible Replacement Scopes:
+
+* Global replacement – process selects replacement frame from set of all frames; one process can take a frame from another
+* Local replacement – each process selects from only its own set of allocated frames
+
+### Equal allocation (Fixed Scheme):
+
+Every process gets same amount of memory
+
+Example: 100 frames, 5 processes : process gets 20 frames
+
+### Proportional allocation (Fixed Scheme)
+
+Allocate according to the size of process
+
+Computation proceeds as follows:
+
+$s_i$ = size of process $p_i$ and $S=\sum s_i$ 
+
+$m$ = total number of physical frames in the system
+
+$a_i$ = (allocation for $p_i$) =$\frac{s_i}{S} \times$
+
+### Priority Allocation
+
+Proportional scheme using priorities rather than size
+
+* Same type of computation as previous scheme
+
+Possible behavior: If process $p_i$ generates a page fault, select for replacement a frame from a process with lower priority number.
+
+We want find a balance between page-fault rate and number of frames. We dynamically adjust the number of frames a process is allocated.
+
+<img src="https://p.ipic.vip/sxoaml.png" alt="image-20230630214738969" style="zoom:50%;" />
+
+**Thrashing**: if a process does not have "enough" pages, the page-fault rate is very high. This leads to low CPU utilization and the operating system spends most of its time swapping to disk. If there are more threads, more memory is needed and thus we need to spend a lot time on paging and swapping.
+
+![Screenshot 2023-06-30 at 9.52.41 PM](https://p.ipic.vip/6dabts.png)
+
+**Working-Set Model**: $\Delta$is the working-set window º= fixed number of page references (Example: 10,000 instructions)
+
+WSi (working set of Process Pi) = total set of pages referenced in the most recent D (varies in time)
+
+* if D too small will not encompass entire locality
+* if D too large will encompass several localities
+* if D = $\infin$ will encompass entire program
+
+$D$ = $\sum|WSi|$ total demand frames 
+
+If D > m $\rightarrow$Thrashing:
+
+* Policy: if D > m, then suspend/swap out processes
+* This can improve overall system behavior by a lot!
+
+For compulsory misses:
+
+**Clustering:** This is a strategy to optimize memory management and reduce the impact of page faults. The idea behind clustering is that when a page fault occurs, instead of just bringing the faulting page into memory, the operating system also brings in a set of pages around the faulting page. This is based on the principle of locality, which states that if a process accesses a particular page, it's likely to access nearby pages in the near future. Clustering takes advantage of the fact that disk reads are more efficient when reading sequential pages, as it reduces the need to move the disk read/write head.
+
+**Working Set Tracking:** This is a strategy used to manage memory more efficiently. The working set of a process is the set of pages that the process is currently using or is likely to use in the near future. By tracking the working set of a process, the operating system can make better decisions about which pages to keep in memory and which pages to swap out. When a process is swapped out and then later swapped back in, if the operating system has been tracking the working set of the process, it can bring the entire working set back into memory. This can significantly reduce the number of page faults after the process is swapped back in, as the pages the process is likely to access are already in memory.
+
+## Linux Memory
+
+### Memory Zones
+
+The Linux kernel divides physical memory into zones, each of which represents a class of memory pages that can be used for different purposes:
+
+- **ZONE_DMA**: This is for memory that is accessible by direct memory access (DMA). DMA is a feature of computer systems that allows certain hardware subsystems to access main system memory independently of the central processing unit. ZONE_DMA is typically for memory under 16MB, which is DMAable on the ISA bus.
+- **ZONE_NORMAL**: This zone typically includes memory from 16MB to 896MB. It is called "normal" because it's the zone where the kernel's code and data structures live, and most of the system's operations happen.
+- **ZONE_HIGHMEM**: This zone includes all physical memory above approximately 896MB. The memory in this zone is not permanently mapped into the kernel's address space. Instead, it is temporarily mapped when needed.
+
+Each of these zones has one freelist and two least recently used (LRU) lists (Active and Inactive). The freelist is used to track free memory pages, while the LRU lists are used to manage page caching
+
+**Memory Allocation Types**
+
+Linux supports many different types of memory allocation, including SLAB allocators, per-page allocators, and mapped/unmapped memory.
+
+- **SLAB allocators**: SLAB allocation is a memory management mechanism within the Linux kernel which helps to efficiently manage the memory allocation of kernel objects. The concept behind SLAB allocation is to create caches for commonly used objects to minimize the overhead of object creation and destruction. For example, whenever a network packet arrives, the kernel needs to create a new object to handle this packet, and when it's done processing, it needs to destroy this object. By using SLAB allocation, these objects can be cached for later use, which can significantly speed up these operations.
+- **Per-page allocators**: This is a type of memory allocation where memory is allocated one page at a time. This is often used for larger allocations, as it can be more efficient than allocating memory in smaller chunks.
+- **Mapped/Unmapped memory**: Mapped memory is memory that has been mapped into the address space of a process. Unmapped memory, on the other hand, has not been mapped into the address space of any process. Mapped memory can be backed by a file, while unmapped memory cannot.
+
+**Types of Allocated Memory**
+
+The allocated memory can be of different types such as:
+
+- **Anonymous memory**: This is memory that is not backed by a file. It is typically used for a process's heap and stack.
+- **Mapped memory**: This is memory that is backed by a file. It is used for things like memory-mapped files and shared memory.
+
+**Allocation Priorities and Blocking**
+
+The Linux kernel also has a notion of allocation priorities. When a process requests memory, it can specify a priority for the allocation. The kernel will then try to satisfy the allocation request based on the priority, the amount of available memory, and other factors.
+
+In addition to allocation priorities, the kernel also has mechanisms to determine whether or not blocking is allowed during a memory allocation. If blocking is allowed, then the process requesting memory can be put to sleep (i.e., blocked) until enough memory is available to satisfy the request. If blocking is not allowed, then the kernel must either immediately satisfy the request or immediately fail it.
+
+![Screenshot 2023-06-30 at 11.53.58 PM](https://p.ipic.vip/klj3d1.png)
+
+One exception to this user/kernel separation is the special Virtual Dynamically linked Shared Objects (VDSO) facility that Linux offers. The purpose of VDSO is to map certain parts of kernel code into user space, providing quicker access to some system call mechanisms. VDSO is a shared library that the kernel automatically maps into the address space of all user-space applications. It contains code that runs in user space but can accomplish the same work as some system calls. A common example is the `gettimeofday()` system call which provides the current system time. By offering a user-space VDSO version of `gettimeofday()`, the system can avoid a context switch to kernel mode, improving performance.
+
+In the Linux kernel, every physical page of memory is described by a "page" structure. This provides metadata about the physical memory page, including status information like whether the page is currently being used, and if so, by which process. These "page" structures are collected together in lower physical memory and can be accessed in the kernel's virtual space.
+
+The Linux kernel also employs the LRU (Least Recently Used) algorithm for managing memory, particularly for its page replacement strategy. It organizes physical pages into several "LRU" lists, which help the system decide which pages should be evicted when the memory is full.
+
+In a 32-bit virtual memory architecture, the way the kernel maps physical memory depends on the amount of physical memory available. When physical memory is less than 896MB, all physical memory is mapped at the memory location 0xC0000000. However, if the physical memory is 896MB or more, the kernel does not map all physical memory all the time. Portions of the memory can be temporarily mapped with addresses greater than 0xCC000000.
+
+In a 64-bit virtual memory architecture, things are different due to the larger address space available. All physical memory can be mapped above the memory address 0xFFFF800000000000. This makes memory management more straightforward and efficient, as there's a direct correlation between virtual and physical memory.
+
+The memory management strategy adopted by an operating system like Linux has profound implications for the system's performance and efficiency, and is a critical part of the kernel's functionality. Understanding this can provide useful insights into the inner workings of operating systems.
+
+### Post Meltdown Memory Map
+
+**Meltdown flaw**: 
+
+```c++
+// Set up side channel (array flushed from cache)
+uchar array[256 * 4096];
+flush(array);	// Make sure array out of cache
+
+try { 	 // … catch and ignore SIGSEGV (illegal access)
+  uchar result = *(uchar *)kernel_address;	// Try access
+  uchar dummy = array[result * 4096];	// leak info
+} catch(){;} // Could use signal() and setjmp/longjmp
+
+// scan through 256 array slots to determine which is fast
+```
+
+Patch: different page tables for user and kernel. But if without PCID tag in TLB, we need to flush TLB *twice* on each syscall (800% overhead!)
+
+Fix: better hardware without timing side-channels
