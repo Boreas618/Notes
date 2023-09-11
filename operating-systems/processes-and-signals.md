@@ -649,40 +649,7 @@ The `sigsetjmp` and `siglongjmp` functions are not on the list of async-signal-s
 
 # Threads
 
-Kernel interrupt handler is not a thread. A interrupt handler is not independently schedulable. It is triggered by a hardware I/O event, rather than a decision by the thread scheduler in the kernel. Once started, the interrupt handler runs to completion, unless preempted by another (higher priority) interrupt.
-
-## Simple Thread API
-
-```c
-int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
-                   void *(*start_routine) (void *), void *arg);
-```
-
-* `thread`: A pointer to a `pthread_t` variable that will be filled in with a unique thread ID for the new thread.
-* `attr`: A pointer to a `pthread_attr_t` structure that specifies attributes for the new thread.
-* `start_routine`: A pointer to the function that the new thread will execute.
-* `arg`: An argument that will be passed to the `start_routine` function when it is called by the new thread.
-
-```c
-int pthread_yield(void);
-```
-
-Give up the processor to let other threads run.
-
-```c
-int pthread_join(pthread_t thread, void **retval);
-```
-
-* `thread`: The thread ID of the thread to join.
-* `retval`: A pointer to a variable that will be filled in with the exit status of the joined thread.
-
-When `pthread_join()` is called, **the calling thread blocks until the specified thread terminates.** Once the thread has terminated, `pthread_join()` returns and the exit status of the thread is stored in the location pointed to by `retval`.
-
-```c
-void pthread_exit(void *retval);
-```
-
-When `pthread_exit()` is called, the calling thread is terminated and its resources are freed. The exit status of the thread is returned in the `retval` parameter.
+> Kernel interrupt handler is not a thread. A interrupt handler is not independently schedulable. It is triggered by a hardware I/O event, rather than a decision by the thread scheduler in the kernel. Once started, the interrupt handler runs to completion, unless preempted by another (higher priority) interrupt.
 
 > **An application of thread: Parallel block zero**
 >
@@ -690,9 +657,7 @@ When `pthread_exit()` is called, the calling thread is terminated and its resour
 
 ## Thread Data Structures and Life Cycle
 
-### Per-Thread State and Thread Control Block (TCB)
-
-Thread Control Block (TCB)
+### Per-Thread State
 
 The thread control block holds two types of per-thread information:
 
@@ -703,7 +668,7 @@ The thread control block holds two types of per-thread information:
 
 A pointer to the thread’s stack and a copy of its processor registers.
 
-In some systems, the general-purpose registers for a stopped thread are stored on the top of the stack, and the TCB contains only a pointer to the stack. In other systems, the TCB contains space for a copy of all processor registers.
+In some systems, the general-purpose registers for a stopped thread are stored on the top of the stack, and the TCB contains only a pointer to the stack (Many early and simplistic computer architectures and operating systems employed this method). In other systems, the TCB contains space for a copy of all processor registers (*nix).
 
 <img src="https://p.ipic.vip/at02p3.png" alt="" width="375">
 
@@ -717,7 +682,7 @@ Code, global variables and heap
 
 ## Thread Life Cycle
 
-![](https://p.ipic.vip/ut6ns7.png)
+<img src="https://p.ipic.vip/ut6ns7.png" style="zoom:50%;" />
 
 **INIT** Thread creation puts a thread into its INIT state and allocates and initializes per-thread data structures. Once that is done, thread creation code puts the thread into the READY state by adding the thread to the _ready list_.
 
@@ -727,8 +692,6 @@ Code, global variables and heap
 
 * The scheduler can preempt a running thread and move it to the READY state by: (1) saving the thread’s registers to its TCB and (2) switching the processor to run the next thread on the ready list.
 * A running thread can voluntarily relinquish the processor and go from RUNNING to READY by calling yield (e.g., `thread_yield` in the thread library).
-
-Linux keeps a running thread in the ready list.
 
 A thread in the **WAITING** state is waiting for some event. Whereas the scheduler can move a thread in the READY state to the RUNNING state, a thread in the WAITING state cannot run until some action by another thread moves it from WAITING to READY.
 
@@ -743,67 +706,57 @@ Porocess not running: PCB or TCB is in some scheduler queue
 
 ![Screenshot 2023-05-27 at 8.15.47 AM](https://p.ipic.vip/5ep9k1.png)
 
-## Implementing Kernel Threads
+## Implementing Threads
 
-* **Kernel threads** The simplest case is implementing threads inside the operating system kernel, sharing one or more physical processors. A _kernel thread_ executes kernel code and modifies kernel data structures. Almost all commercial operating systems today support kernel threads. (e.g., process scheduling, memory management)
+**User Level Threads**
 
-* **Kernel threads and single-threaded processes.** An operating system with kernel threads might also run some single-threaded user processes.
+User threads function fully within user space, bypassing kernel intervention for operations. They're managed by user-level thread libraries like POSIX Pthreads or Java Thread API. They switch contexts faster than kernel threads but can block other user threads if one performs a blocking operation.
 
-  <img src="https://p.ipic.vip/3i4w5q.png" alt="" width="375">
+**Kernel Level Threads**
 
-  Every thread corresponds to a user stack and kernel stack. 
+Kernel threads can execute kernel code and alter kernel data structures. Managed by the OS, they're used for tasks like process scheduling. They offer more concurrency than user threads but have higher context-switching overhead.
 
-* **Multi-threaded processes using kernel threads**
+**Hybrid Thread Approach**
 
-  <img src="https://p.ipic.vip/xdh0ef.png" style="zoom:50%;" />
-
-  Each thread needs a kernel stack in the kernel. Here, "in the kernel" means that the data structure is managed and controlled by the kernel of the operating system.
-
-* **User-level threads**
-
-  The thread operations — `create`, `yield`, `join`, `exit`, and the synchronization routines is completely controlled by the user.
+This method merges benefits of user and kernel threads. The OS recognizes both thread types and can map multiple user threads to one kernel thread or keep a one-to-one ratio. It balances fast context switching of user threads with kernel thread integration, but managing this system can be complex.
 
 ### Creating a Thread
 
+The creation of a thread involves the setup of its own stack, where local variables, function arguments, and return addresses are stored. Let's break down the following code that demonstrates this:
 
 ```c
 void thread_create(thread_t *thread, void (*func)(int), int arg) {
-    // Allocate TCB and stack
+    // Allocate a Thread Control Block (TCB) and a dedicated stack
     TCB *tcb = new TCB();
     thread->tcb = tcb;
     tcb->stack_size = INITIAL_STACK_SIZE;
     tcb->stack = new Stack(INITIAL_STACK_SIZE);
     
-    // Initialize registers so that when thread is resumed, it will start running at
-    // stub.  The stack starts at the top of the allocated region and grows down.
+    // Initialize the stack pointer (sp) to point to the top of the stack. Recall in Linux, the stack grows downwards
+    // (from higher memory address to lower). Also, set the program counter (pc) to point to our stub function.
     tcb->sp = tcb->stack + INITIAL_STACK_SIZE;
     tcb->pc = stub;
     
-    // Create a stack frame by pushing stub’s arguments and start address
-    // onto the stack: func, arg
-  	// This whole process is necessary because the thread isn't being started by a normal function call. Instead, it's 		
-  	// being started by the system's thread scheduler, which doesn't know anything about the stub function's arguments.
-    *(tcb->sp) = arg;
+    // When the system's thread scheduler starts this thread, it's unaware of the specific arguments required by our stub function.
+    // Hence, we manually set up the stack to contain these arguments: the function `func` and its integer argument `arg`.
+    *(tcb->sp) = arg;        // Push the argument onto the stack
     tcb->sp--;
-    *(tcb->sp) = func;
+    *(tcb->sp) = func;       // Push the function pointer onto the stack
     tcb->sp--;
     
-    // Create another stack frame so that thread_switch works correctly.
-    // This routine is explained later in the chapter.
+    // Set up another stack frame to ensure proper context switching. This aspect will be elaborated in later sections.
     thread_dummySwitchFrame(tcb);
-		tcb->state = READY;
-    readyList.add(tcb);    // Put tcb on ready list
- }
- 
+    tcb->state = READY;
+    readyList.add(tcb);      // Enqueue the TCB to the list of ready-to-run threads
+}
+
 void stub(void (*func)(int), int arg) {
-     (*func)(arg);           // Execute the function func()
-     thread_exit(0);         // If func() does not call exit,  call it here.
- }
+    (*func)(arg);            // Invoke the actual thread function
+    thread_exit(0);          // Ensure the thread is properly terminated if `func` doesn't call `thread_exit` on its own
+}
 ```
 
-When we create a stack, we get the address of the stack. The stack is a continuous memory region from the starting address. We need to get to the top of the stack and the stack grows from higher address to lower address.
-
-Noting the step of calling `stub`. We need this extra step in case the `func` procedure returns instead of calling `thread_exit`. Without the stub, func would return to whatever random location is stored at the top of the stack! Instead, func returns to stub and stub calls thread\_exit to finish the thread.
+The essence of the `stub` function is to act as a safety net. When our thread function `func` completes its execution, it needs to know where to return. If we didn't have the `stub` function, and if `func` didn't call `thread_exit`, it would try to return to whatever memory address was initially at the top of the stack – which could be any arbitrary value, leading to unpredictable behavior. Instead, by using the `stub` function, we ensure that once `func` completes, it returns to a controlled environment (`stub`), which then ensures the thread is correctly terminated by invoking `thread_exit`.
 
 ### Deleting a Thread
 
@@ -975,3 +928,36 @@ We can perform user-level yield without borthering switching to the kernel mode.
 To address this issue, we propose Many-toMany model:
 
 <img src="https://p.ipic.vip/pdn8cv.png" alt="image-20230611013251886" style="zoom:50%;" />
+
+## POSIX Thread APIs
+
+```c
+int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
+                   void *(*start_routine) (void *), void *arg);
+```
+
+* `thread`: A pointer to a `pthread_t` variable that will be filled in with a unique thread ID for the new thread.
+* `attr`: A pointer to a `pthread_attr_t` structure that specifies attributes for the new thread.
+* `start_routine`: A pointer to the function that the new thread will execute.
+* `arg`: An argument that will be passed to the `start_routine` function when it is called by the new thread.
+
+```c
+int pthread_yield(void);
+```
+
+Give up the processor to let other threads run.
+
+```c
+int pthread_join(pthread_t thread, void **retval);
+```
+
+* `thread`: The thread ID of the thread to join.
+* `retval`: A pointer to a variable that will be filled in with the exit status of the joined thread.
+
+When `pthread_join()` is called, **the calling thread blocks until the specified thread terminates.** Once the thread has terminated, `pthread_join()` returns and the exit status of the thread is stored in the location pointed to by `retval`.
+
+```c
+void pthread_exit(void *retval);
+```
+
+When `pthread_exit()` is called, the calling thread is terminated and its resources are freed. The exit status of the thread is returned in the `retval` parameter.

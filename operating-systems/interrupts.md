@@ -1,45 +1,35 @@
 The control flow of the processor: Each transition from one address of a certain instruciton to another address of instruction is called **flow of control**, or **control flow** of the processor.
 
-# Exceptions
+# Interrupts
 
-**Definition**: exception is an abrupt **change** in the control flow in response to some change in the processor’s state.
+**Interrupt** is an abrupt **change** in the control flow in response to some change in the processor’s state.
 
-Processor’s state: encoded in various bits and signals inside the processor. The change in state is known as an **event**.
+In the case, when the processor detects that the event has occured, it makes an indirect procedure call through a jump table called an **interrupt vector table**, to an operating system subroutine (the **interrupt handler**) that is specially designed to process this particular kind of event. When the exception handler finishes processing, one of three things happens, depending on the type of event that caused the exception:
 
-Change of processor’s state is triggered by events.
-
-In the case, when the processor detects that the event has occured, it makes an indirect procedure call (the exception), through a jump table called an **exception** **table**, to an operating system subroutine (the **exception handler**) that is specially designed to process this particular kind of event. When the exception handler finishes processing, one of three things happens, depending on the type of event that caused the exception:
-
-* returns to $I\_{curr}$
-* returns to $I\_{next}$
+* returns to $I_{curr}$
+* returns to $I_{next}$
 * Aborts the interrupted program
 
-## Exception Handling
+## Interrupt Handling
 
-Exceptions denoted with **exception number**s. Assigned by processor or kernel.
+Interrupts are denoted with **interrupt number**s. Assigned by processor or kernel.
 
-At system boot time, the operating system allocates and initializes a jump table called an exception table.
+At system boot time, the operating system allocates and initializes a jump table called an **interrupt vector table**.
 
-The exception number is an index into the exception table, whose starting address is contained in a special CPU register called the **exception table base register**.
+The interrupt number is an index into the interrupt vector table, whose starting address is contained in a special CPU register called the **interrupt vector table base register**.
 
-When exceptions occur, control is being transfered from a user program to the kernel and certain data (like CPU registers' values, return address, etc.) are saved (pushed) onto the kernel's stack. This ensures that the exception handling process has all the necessary information it needs, and after handling the exception, the system can restore the user program's state and resume its execution. This is because the kernel needs this information to handle the exception, and it also helps to isolate the exception handling process from potentially unsafe user code.
+When interrupts occur, control is being transfered from a user program to the kernel and certain data (like CPU registers' values, return address, etc.) are saved (pushed) onto the kernel's stack. This ensures that the interrupt handling routine has all the necessary information it needs, and after handling the interrupt, the system can restore the user program's state and resume its execution. This is because the kernel needs this information to handle the interrupt, and it also helps to isolate the interrupt handling routine from potentially unsafe user code.
 
 After the handler has processed the event, it optionally returns to the interrupted program by executing a special “return from interrupt” instruction.
 
-## Classes of Exceptions
+## Classes of Interrupts
 
-| Class     | Cause                           | Async/sync | Return behavior           |
-| --------- | ------------------------------- | ---------- | ------------------------- |
-| Interrupt | Signal from I/O device / Signal | Async      | Next instruction          |
-| Trap      | Intentional exception           | Sync       | Next instruction          |
-| Fault     | Potentially recoverable error   | Sync       | Might current instruction |
-| Abort     | Nonrecoverable error            | Sync       | Never returns             |
-
-Interrupt is said to be external and **from hardware**. The remaining three classes are called interrupt sometimes. They are known as exceptions in a narrow sense and internal exceptions.
-
-> **Different classification schemes**:
->
-> Some materials use a different classification scheme, replacing the concept of "exception" with "interrupt." In this context, "exception" actually encompasses trap, fault, and abort.
+| Class                | Cause                           | Async/sync | Return behavior           |
+| -------------------- | ------------------------------- | ---------- | ------------------------- |
+| (narrowly) Interrupt | Signal from I/O device / Signal | Async      | Next instruction          |
+| Trap                 | Intentional exception           | Sync       | Next instruction          |
+| Fault                | Potentially recoverable error   | Sync       | Might current instruction |
+| Abort                | Nonrecoverable error            | Sync       | Never returns             |
 
 * **Interrupts**
 
@@ -49,7 +39,7 @@ Interrupt is said to be external and **from hardware**. The remaining three clas
 
   **After the current instruction finishes executing**, the processor notices that the interrupt pin has gone high, reads the exception number from the system bus, and then calls the appropriate interrupt handler.
 
-  The interrupts can be further classified into maskable Interrupt and non-maskable interrupt.
+  The interrupts can be further classified into maskable Interrupt and non-maskable interrupt. They can also be called as external/hardware interrupt.
 
 * **Traps and System calls**
 
@@ -67,9 +57,9 @@ Interrupt is said to be external and **from hardware**. The remaining three clas
 
   Aborts result from unrecoverable fatal errors.
 
-## Exceptions in Linux/x86-64 Systems
+## Interrupts in Linux x86-64 Systems
 
-There are up to 256 different exception types. Numbers in the range from 0 to 31 correspond to exceptions that are defined by the Intel architects and thus are identical for any x86-64 system. Numbers in the range from 32 to 255 correspond to interrupts and traps that are defined by the operating system. Entry 64 points to the system call trap handler.
+There are up to 256 different interrupt types. Numbers in the range from 0 to 31 correspond to exceptions that are defined by the Intel architects and thus are identical for any x86-64 system. Numbers in the range from 32 to 255 correspond to interrupts and traps that are defined by the operating system. Entry 64 points to the system call trap handler.
 
 | Exception number | Description              | Exception class   |
 | ---------------- | ------------------------ | ----------------- |
@@ -79,7 +69,7 @@ There are up to 256 different exception types. Numbers in the range from 0 to 31
 | 18               | Machine check            | Abort             |
 | 32-255           | OS-defined exceptions    | Interrupt or trap |
 
-Each system call has a unique integer number that corresponds to an offset in a jump table in the kernel. (Notice that this jump table is not the same as the exception table. The **exception table** deals with unexpected conditions in the kernel's operation and helps it recover or handle such situations gracefully. The **system call jump table** serves as an index to quickly and efficiently route system call requests from user space programs to the appropriate kernel functions.)
+Each system call has a unique integer number that corresponds to an offset in a jump table in the kernel. (Notice that this jump table is not the same as the exception table. The **interrupt vector table** deals with unexpected conditions in the kernel's operation and helps it recover or handle such situations gracefully. The **system call jump table** serves as an index to quickly and efficiently route system call requests from user space programs to the appropriate kernel functions.)
 
 ![Screenshot 2023-07-13 at 11.57.46 PM](https://p.ipic.vip/trbk4b.png)
 
@@ -112,7 +102,7 @@ pid_t Fork(void){
 }
 ```
 
-## Dual-mode operation
+# Dual-mode operation
 
 In user-mode, the processor checks each instruction before executing it to verify that the instruction is permitted to be performed by that process.
 
@@ -124,7 +114,7 @@ Hardware needed to do the protection:
 * **Memory Protection**: Guards data access.
 * **Timer Interrupts**: Balances processor usage.
 
-### Privileged instructions
+## Privileged instructions
 
 Process isolation is only possible if there is a way to **limit programs running in user-mode from directly changing their privilege level. **Other than trapping into the system kernel at the system call locations, an application process **cannot be allowed to change its privilege level**.
 
@@ -134,21 +124,21 @@ When a process attempts to access the memory it is not allowed to access, except
 
 Usually, the operating system kernel simply halts the process on privilege violations, as it often means that the application’s code has encountered a bug.
 
-### Memory protection
+## Memory protection
 
 Discuss later in the memory part of this wiki.
 
-### Timer interrupts
+## Timer interrupts
 
 A hardware timer: interrupt the processor after a certain delay.
 
 After resetting the timer, the operating system will resume execution of the process.
 
-## Safe control transfer
+# Safe control transfer
 
-Reasons for control transfer: the four classes of exceptions.
+Reasons for control transfer: the four classes of interrupts.
 
-### Safe mode switch
+## Safe mode switch
 
 A common sequence for entering the kernel and returning from the kernel
 
@@ -162,25 +152,23 @@ A common sequence for entering the kernel and returning from the kernel
 
 * Transparent, restartable execution
 
-**Interrupt vector**: A **special register** pointing to **an area of kernel memory** called the interrupt vector. The interrupt vector is an array of pointers, with each pointer pointing to the first instruction of a handler procedure. 
-
-**Interrupt handler stack**: A **privileged hardware register** pointing to a region of **kernel memory** called the interrupt handler stack.
+**Interrupt handler stack pointer**: A **privileged hardware register** pointing to a region of **kernel memory** called the interrupt handler stack.
 
 Procedure:
 
 * Save some of the interrupted process’s registers onto the interrupt stack (done by hardware)
-* call the kernel handler
+* Call the kernel handler
 * Save the remaining registers(done by the handler)
-* do the handler work
+* Do the handler work
 
 Procedure of returning from the interrupt, exception or trap:
 
 * pop the registers stored by the handler
 * hardware restore the registers it saved into the interrupt stack
 
-> When a ***software*** exception occurs, the user's register information is saved on the **kernel stack**.
+> When a ***software*** interrupt occurs, the user's register information is saved on the **kernel stack**.
 >
-> When a ***hardware*** exception is triggered, the user's register information is saved on the **interrupt handler stack**.
+> When a ***hardware*** interrupt is triggered, the user's register information is saved on the **interrupt handler stack**.
 >
 > When a thread is rescheduled, the user's register information is saved on the **user stack**.
 >
@@ -202,9 +190,9 @@ Once the handler starts running, it can use the `pushad` instruction to save the
 
 `pushad` saves the x86 integer registers; because the kernel does not typically do ﬂoating point operations, those do not need to be saved unless the kernel switches to a new process.
 
-`popad ` pop an array of integer register values off the stack into the registers
+`popad ` pop an array of integer register values off the stack into the registers.
 
-`iret` instruction that loads a stack pointer, instruction pointer and processor status word off the stack into the appropriate processor registers.
+`iret` instruction loads a stack pointer, instruction pointer and processor status word off the stack into the appropriate processor registers.
 
 **Putting it all together: Mode switch on the x86**
 
@@ -218,15 +206,15 @@ The current user-level instruction is based on a combination of the code segment
 > 4. **Extra Segment (ES)**: This segment is generally used for extra data and is sometimes used by certain instructions that need to access data in a different segment.
 > 5. **FS, GS**: Additional segments that can be used for various purposes depending on the specific needs of a program.
 
-The current stack position is based on the stack segment `ss` and the stack pointer within the stack segment `esp`.
+The detailed picture of mode switch:
 
 1. Save three key values. The hardware **internally** saves the value of the stack pointer (the x86 `esp` and `ss` registers), the execution ﬂags (the x86 `eflags` register), and the instruction pointer (the x86 `eip` and `cs` registers).
 2. Switch onto the interrupt handler stack. The hardware then switches the stack pointer to the base of the kernel handler stack. The hardware switches to a new stack if the Interrupt Stack Table (IST) feature is used. The new stack's address is found in the IST, which is a part of the Task State Segment (TSS).
 3. Push the three key values onto the new stack. The hardware then stores the internally saved values onto the stack.
-4. Optionally save error code. Certain types of exceptions such as page faults **generate an error code** to provide more information about the event; for these exceptions, the hardware pushes this code as the last item on the stack. For other types of events, the software interrupt handler typically pushes a dummy value onto the stack so that the stack format is identical in both cases.
-5. Invoke the interrupt handler. Finally, the hardware changes the program counter to the address of the interrupt handler procedure, speciﬁed via a special register in the processor that is accessible only to the kernel. This register contains a pointer to an array of exception handler addresses in memory. The type of interrupt is mapped to an index in this array, and the program counter is set to the value at this index.
+4. Optionally save error code. Certain types of interrupts such as page faults **generate an error code** to provide more information about the event; for these exceptions, the hardware pushes this code as the last item on the stack. For other types of events, the software interrupt handler typically pushes a dummy value onto the stack so that the stack format is identical in both cases.
+5. Invoke the interrupt handler. Finally, the hardware changes the program counter to the address of the interrupt handler procedure through interrupt vector table.
 
-In the interrupt handler process, `pushad` pushes the rest of the registers, **including the current stack pointer**, onto the stack. x86 `pushad` pushes the contents of all general purpose registers onto the stack.
+6. In the interrupt handler process, `pushad` pushes the rest of the registers, **including the current stack pointer**, onto the stack. x86 `pushad` pushes the contents of all general purpose registers onto the stack.
 
 At this point the kernel’s interrupt handler stack holds
 

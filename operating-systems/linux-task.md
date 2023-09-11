@@ -1,88 +1,85 @@
 # Linux Task Model
 
-In the Linux kernel, both threads and processes are represented using the `task_struct` structure. In this sense, they're both considered "tasks." However, how the kernel differentiates between threads and processes is through the concept of thread groups.
+In the Linux kernel, both threads and processes are encapsulated using the `task_struct` structure, making them both "tasks." Their distinction arises from the concept of thread groups.
 
-1. **task_struct**: This is the primary data structure used by the Linux kernel to represent a process or thread. Each instance of this structure contains all the necessary information about a task, such as its state, priority, open files, memory mappings, etc.
-
-2. **Thread Group**: Linux treats processes as a group of one or more threads, with each thread being a task. The thread group ID (`tgid`) is introduced to differentiate between a standalone task and a task that belongs to a group. For a single-threaded process, the thread ID (PID) and thread group ID (TGID) are the same. For a multi-threaded process, the TGID is the same as the PID of the main thread, and all threads (including the main thread) in this process share this TGID. The individual threads, meanwhile, will each have their own unique PID.
-
-   `getpid()` returns the current `tgid` and `getttid()` returns the current `pid`.
+1. **task_struct**: The Linux kernel's primary structure for representing either a process or a thread. It encompasses all essential details about a task, such as state, priority, open files, memory mappings, and more.
+2. **Thread Group**: In Linux, a process is a collection of one or more threads. Each thread is a task. The distinction between a standalone task (process) and a task within a group (thread) is made using the thread group ID (`tgid`). For a single-threaded process, its PID and TGID are identical. For a multi-threaded process, the TGID matches the main thread's PID, and all threads within this process share this TGID. However, each thread retains its unique PID.
+   - `getpid()` returns the PID of the calling process.
+   - `gettid()` returns the PID of the calling thread.
 
 ## Task Life Cycle
 
-* `TASK_NEW` (Linux 4.8) 
-
-  Ensure that the task won't run.
-
-* `TASK_RUNNING`
-
-  This is the state of a task that is either currently running or on the runqueue waiting to run. A task in this state can be selected by the scheduler to run on a CPU.
-
-* `TASK_INTERRUPTIBLE`
-
-  A task in this state is waiting for a certain condition to come true or for a resource to become available. It remains in the sleep queue and can be woken up by signals. If the required condition is satisfied or if the task receives a signal, it transitions back to `TASK_RUNNING`. A common scenario for this state is when a task waits for data from disk. If the data isn't readily available, the task doesn't waste CPU cycles and instead sleeps until the data is fetched.
-
-* `TASK_UNINTERRUPTIBLE`
-
-  Similar to the `TASK_INTERRUPTIBLE` state, a task in this state is waiting for a condition to become true or for a resource. However, unlike `TASK_INTERRUPTIBLE`, tasks in this state do not wake up for signals. They only transition back to `TASK_RUNNING` once the condition they are waiting for becomes true. This state is used in situations where an interruption can cause inconsistency or incoherence, like certain I/O operations.
-
-* `TASK_STOPPED`
-
-  A task enters this state when it receives a signal like `SIGSTOP`, which instructs it to stop executing. While in the `_TASK_STOPPED` state, the task does not run, but it can be resumed if it receives a `SIGCONT` signal. This state is also different from `TASK_INTERRUPTIBLE` and `TASK_UNINTERRUPTIBLE` in that a task in those states waits for an event or condition, whereas a `_TASK_STOPPED` task is explicitly paused by a signal.
-
-* `EXIT_ZOMBIE`
-
-  When a task has completed its execution but still has an entry in the task table, it's in the `EXIT_ZOMBIE` state. In this state, the task is not running, but it hasn't been completely removed from the process table because its parent hasn't read its exit status yet. Once the parent process reads the exit status using system calls like `wait()` or `waitpid()`, the zombie task is removed from the process table and it's said to be reaped.
+| State                  | Description                                                  |
+| ---------------------- | ------------------------------------------------------------ |
+| `TASK_NEW` (Linux 4.8) | Prevents the task from executing.                            |
+| `TASK_RUNNING`         | Represents tasks either currently executing or waiting in the runqueue. Tasks in this state are eligible for CPU execution. |
+| `TASK_INTERRUPTIBLE`   | Tasks wait for specific conditions or resources and can be awakened by signals. Typically seen when tasks await disk data. |
+| `TASK_UNINTERRUPTIBLE` | Like `TASK_INTERRUPTIBLE`, but tasks don't wake up for signals. Used for operations where interruptions may cause inconsistencies. |
+| `TASK_STOPPED`         | Tasks are halted by signals like `SIGSTOP` and can resume with `SIGCONT`. This state is signal-induced, not due to an awaited condition. |
+| `EXIT_ZOMBIE`          | Tasks have finished but remain in the task table, awaiting their parent to read the exit status. They are removed once the status is read. |
 
 ## Thread Family
 
-`init_task` is created when the kernel is launching. It is also called process 0 or idle process or swapper process. It is the first-ever kernel process.
+`init_task` is the kernel's first process (process 0) initialized at launch, acting as the idle or swapper process. Before the `start_kernel()` function starts user-space process initialization, the kernel establishes its core data structures, including the task structure for `init_task`. By the end of `start_kernel()`, the `rest_init()` function spawns the `init` process (process 1) in user-space, making it the first user-space process initiated by the kernel. 
 
-`init` is created when the initialization of the system is about to reach an end. It is also called process 1.
+Once process 0 starts process 1, it runs `cpu_idle()`, and the CPU enters an idle state if no other processes are ready. Process 1 triggers the `kernel_init()` function, which calls `execve` to load executables like `/sbin/init`. Consequently, process 1 becomes a standard process, executing tasks based on `/etc/inittab`.
 
-After `start_kernel()` has initialized all the data structures, it will create `init` process which shares all data structures with `init_task`.
+## `task_struct` 
 
-After process 0 has created process 1, it will run `cpu_idle()`. When there are no tunable processes on the ready task of CPU, the scheduler will run process 0 and push CPU into idle state.
-
-Process 1 will call `kerel_init()` function which will call `execve` to load executable inits(/sbin/init, /bin/init). Finally, process 1 becomes a normal process. After it has become a normal process, it will do some work as instructed in /etc/inittab.
-
-## `task_struct`
-
-**`tasks`: `list_head` **All `task_structrues` are connected by a doubly linked list. The head of the list is `init_task`.
-
-**`thread_group`: `list_head`**: All the threads within the same process group.
-
-**`stack`: `void*`** Points to the kernel stack.
-
-**`mm`: `mm_struct *`** Points to the memory layout information. We can locate the user-space stack with this struct.
+| Field Name     | Data Type       | Description                                                  |
+| -------------- | --------------- | ------------------------------------------------------------ |
+| `tasks`        | `list_head`     | All `task_struct` instances are connected via this doubly linked list. The head of the list is represented by `init_task`. |
+| `thread_group` | `list_head`     | Represents all the threads within the same process group.    |
+| `stack`        | `void*`         | Pointer to the kernel stack of the task.                     |
+| `mm`           | `mm_struct *`   | Points to the memory layout information of the task. This structure can be used to locate the user-space stack. |
+| `pid`          | `pid_t`         | Process ID of the task.                                      |
+| `state`        | `long`          | Current state of the process. Common states include `TASK_RUNNING`, `TASK_INTERRUPTIBLE`, and `TASK_UNINTERRUPTIBLE`. |
+| `priority`     | `int`           | Static priority of the task.                                 |
+| `cpus_allowed` | `cpumask_t`     | CPU affinity mask.                                           |
+| `flags`        | `unsigned int`  | Process flags.                                               |
+| `exit_code`    | `int`           | Exit code returned when the task terminates.                 |
+| `parent`       | `task_struct *` | Pointer to the parent process.                               |
+| `children`     | `list_head`     | List of child processes.                                     |
+| `next_task`    | `task_struct *` | Pointer to the next task in the runnable list.               |
+| `prev_task`    | `task_struct *` | Pointer to the previous task in the runnable list.           |
 
 ## Macros
 
-**`next_task()`**
+### **`next_task(p)`**
+
+This macro fetches the next task in the task list, given the current task `p`.
 
 ```c
 #define next_task(p) \
 	list_entry_rcu((p)->tasks.next, struct task_struct, tasks)
 ```
 
-**`next_thread()`**
+The `list_entry_rcu` function is a mechanism to fetch the entry from a given linked list pointer, in this case, the `tasks` list of task structures. It ensures the safe traversal of the list in a RCU (Read-Copy-Update) protected context.
 
-**`for_each_process()`**
+### **`next_thread(p)`**
+
+This macro is used to fetch the next thread of a given task `p`. In Linux, threads are essentially tasks that share certain resources with other tasks. Threads are connected in a list, similar to tasks, which this macro helps traverse.
+
+### **`for_each_process(p)`**
+
+This macro provides a way to iterate over all tasks in the system, starting from the `init_task`, which is the initial task started by the kernel.
 
 ```c
 #define for_each_process(p) \
 	for (p = &init_task ; (p = next_task(p)) != &init_task ; )
 ```
 
-**`current()`**
+Here, the loop will continue fetching the next task until it wraps around and reaches the `init_task` again.
 
-In Linux kernel 4.0, a `thread_info` is stored on the bottom of the kernel stack. For example, in Arm32, to obtain the current process, we can locate the `thread_info` by first finding the kernel stack through the `SP` register.
+### **`current()`**
 
-The release of Linux kernel 5.0 includes a new configuration option called `CONFIG_THREAD_INFO_IN_TASK`. This option specifies that the `thread_info is situated` in the`task_struct`. This helps to reduce the likelihood of `thread_info` corruption in certain stack overflow scenarios.
+In Linux kernel 4.0 and earlier versions, the `thread_info` structure, which contains information about a thread, is stored at the bottom of the kernel stack. To fetch the current process (or thread) on architectures like Arm32, we can locate the `thread_info` by first accessing the kernel stack using the `SP` (Stack Pointer) register.
+
+However, with the introduction of Linux kernel 5.0, there was a significant change. A new configuration option called `CONFIG_THREAD_INFO_IN_TASK` was added. When this option is enabled, the `thread_info` is situated directly within the `task_struct`, which is the main data structure representing a task or thread in the kernel. By placing the `thread_info` inside the `task_struct`, it becomes less prone to corruption due to certain stack overflow scenarios, thereby enhancing the kernel's stability and security.
 
 ## Primitives
 
-Linux extends `fork()` primitive of POSIX to `vfork()` and `clone()`. The underlying implementation of `fork()`,  `vfork()` and `clone()` is realized by `_do_fork()`.
+Linux augments the POSIX `fork()` primitive with the additions of `vfork()` and `clone()`. All three methods are underpinned by the `_do_fork()` function.
 
 ```c
 #include <unistd.h>
@@ -91,6 +88,8 @@ Linux extends `fork()` primitive of POSIX to `vfork()` and `clone()`. The underl
 pid_t fork(void);
 ```
 
+The `fork()` syscall is implemented as:
+
 ```c
 SYSCALL_DEFINE0(fork)
 {
@@ -98,7 +97,9 @@ SYSCALL_DEFINE0(fork)
 }
 ```
 
-There are drawbacks with `fork()`. Though it adopts copy-on-write, it has to copy the page table of the parent process which may result it in a lower performance.
+However, `fork()` can be less efficient as it necessitates the copying of the parent process's page table, even with copy-on-write optimization.
+
+`vfork()` addresses some of the drawbacks of `fork()`:
 
 ```c
 SYSCALL_DEFINE0(vfork)
@@ -107,63 +108,44 @@ SYSCALL_DEFINE0(vfork)
 }
 ```
 
-The parent process of `vfork()` will block until the child process calls `exit()` or `execve()`. The implementation of `v_fork()` has two more signal flag than that of `fork()`. 
+### Key Differences between `fork()` and `vfork()`
 
-**Difference between `fork()` and `vfork()`**
+| Criteria                       | `fork()`                                                     | `vfork()`                                                    |
+| ------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ |
+| **Memory Semantics**           | Duplicates the address space of the parent (uses "copy-on-write"). | Shares the address space with the parent until a call to `execve()` or `_exit()`. |
+| **Blocking of Parent Process** | Both processes run concurrently.                             | The parent process is halted until the child process exits or executes another program. |
+| **Overhead**                   | Can be higher, especially with large address spaces.         | Typically lower since it doesn't duplicate the address space. |
+| **Usage**                      | For duplicating processes.                                   | Primarily for the child to execute another program.          |
+| **Safety**                     | Safer due to memory isolation.                               | Riskier due to shared memory.                                |
 
-1. **Memory Semantics**:
-   - **fork()**: When a new process is created using `fork()`, it creates a complete copy of the address space of the parent process. This means both the parent and the child processes have separate memory areas. This is known as a "copy-on-write" mechanism, where the actual memory copying is delayed until one of the processes (either parent or child) modifies the memory.
-   - **vfork()**: With `vfork()`, the child process shares the address space of the parent process until it either calls `execve()` to replace its memory space with a new program or calls `_exit()` to terminate. Due to this shared address space, the child process can modify the parent's memory and variables.
-2. **Blocking of Parent Process**:
-   - **fork()**: After calling `fork()`, both the parent and child processes can run concurrently.
-   - **vfork()**: After calling `vfork()`, the parent process is suspended and doesn't run until the child process either calls `execve()` or `_exit()`.
-3. **Overhead**:
-   - **fork()**: Due to the copy-on-write mechanism, `fork()` can have more overhead, especially if the parent process has a large address space. However, in modern systems with copy-on-write optimizations, the overhead can often be minimal until the memory is actually written to.
-   - **vfork()**: `vfork()` has less overhead compared to `fork()` since it doesn't copy the address space.
-4. **Usage**:
-   - **fork()**: `fork()` is widely used when a process wants to duplicate itself to run similar tasks or processes concurrently.
-   - **vfork()**: `vfork()` is generally used when the child process is created solely to execute a new program using `execve()`. Given its specific use-case and potential risks due to shared memory, `vfork()` is used less frequently.
-5. **Safety**:
-   - **fork()**: `fork()` is safer in a sense that the child doesn't modify the parent's memory.
-   - **vfork()**: `vfork()` can lead to issues if not used carefully, due to shared memory. If the child process modifies any data before calling `execve()` or `_exit()`, it can alter the parent's execution.
-
-`clone()` is usually used to create user-level thread. It can selectively inherit the parent process's resource.
-
-The encapsulation of glibc library:
+`clone()` is a more versatile syscall, typically employed for creating user-level threads. It provides granular control over the inheritance of the parent's resources:
 
 ```c
 #include <sched.h>
 
-// 'fn' is a function pointer to the routine that will be executed by the child process
-// 'child_stack' is the stack for the child process
-// 'flag' sets the signal flag that denotes the resource that needs to be inherited
-// 'arg' denotes the parameters for the child process
 int clone(int (*fn)(void *), void *child_stack, int flags, void *arg, ...);
-
-long clone(unsigned long flags, void *child_stack, void *ptid, void *ctid, struct pt_regs *regs);
 ```
+
+Its syscall definition is:
 
 ```c
 SYSCALL_DEFINE5(clone, unsigned long, clone_flags, unsigned long, newsp,
-		 int __user *, parent_tidptr,
-		 int __user *, child_tidptr,
-		 unsigned long, tls)
+		 int __user *, parent_tidptr, int __user *, child_tidptr, unsigned long, tls)
 {
 	return _do_fork(clone_flags, newsp, 0, parent_tidptr, child_tidptr, tls);
 }
 ```
 
-Scenarios when a thread is terminated:
+### Thread Termination Scenarios
 
-* (Volun) Return from `main`
-* (Volun) Call `exit()`
-* The thread receives a signal that cannot be handled
-* The thread excounters a exception in kernel mode
-* The thread receives `SIGKILL`
+Threads can terminate due to the following:
+- Voluntary return from `main`
+- Voluntary call to `exit()`
+- Unhandled signals
+- Kernel mode exceptions
+- Reception of `SIGKILL`
 
-If the child process terminates earlier than parent process, then the parent process has to reap the zombie through `wait()`
-
-If the child process terminates later than parent process, then `init` becomes its' new parent.
+Post-termination, if the child concludes before the parent, the latter must reap the former's "zombie" state using `wait()`. If the child outlives the parent, the `init` process adopts it.
 
 ```c
 SYSCALL_DEFINE1(exit, int, error_code)
@@ -172,9 +154,9 @@ SYSCALL_DEFINE1(exit, int, error_code)
 }
 ```
 
-Linux designed the zombie mechanism to allow the system to obtain the reasons for termination of child processes. After the parent process calls the `wait()` system call and obtains the reasons for the termination of child processes, the kernel releases the `task_struct` of the child process.
+Zombies exist to let the system retrieve termination reasons. After using the `wait()` syscall to glean this information, the kernel discards the child's `task_struct`.
 
-Some system calls related to `wait()`:
+Related system calls to `wait()` include:
 
 ```c
 asmlinkage long sys_wait4(pid_t pid, int __user *stat_addr, int options, struct rusage __user *ru);
@@ -202,8 +184,22 @@ The underlying implementation of `kernel_thread` is done through `_do_fork()`.
 Typical call stack:
 
 ```c
-fork() -> _do_fork() -> copy_process() -> dup_task_structre()
+fork() -> _do_fork() -> copy_process()
 ```
+
+Functions called in `copy_process()`:
+
+1. **dup_task_struct()**: This creates a duplicate of the current task's task structure. 
+2. **init_task()**: It initializes various task parameters for the newly created process.
+3. **copy_flags()**: Adjusts flags based on the original process and the nature of the forking/cloning.
+4. **copy_files()**, **copy_fs()**, **copy_sighand()**, **copy_signal()**, **copy_mm()**, **copy_namespaces()**, etc.: These functions copy or share different aspects of the process context depending on the flags passed to the clone system call. For example, if `CLONE_FILES `is set, `copy_files()` would share file descriptors between the parent and child processes, otherwise, it creates a copy.
+5. **copy_thread()**: Responsible for copying architecture-specific thread-related data. In the x86 architecture, it sets up the new process's kernel stack and process state.
+6. **pid_alloc()**: Allocates a PID (Process ID) for the new process.
+7. **sched_fork()**: Prepares the new process for scheduling.
+8. **wake_up_new_task()**: Once the new process has been set up, this function is called to put the new task on the run queue, ready to be scheduled by the CPU.
+9. **audit_fork()**: If auditing is enabled, this function records the fork event.
+10. **ptrace_fork()**: If the parent process is being traced (e.g., by a debugger), this function ensures that the child is also traced.
+11. **perf_event_fork()**: If performance events are being tracked, they are updated for the new process here.
 
 ### `_do_fork()`
 
@@ -342,37 +338,107 @@ long _do_fork(unsigned long clone_flags,
 * Make the `stack` in the new process's process descriptor point to the new kernel stack.
 * Call `set_task_stack_end_magic()` to set a magic number at the top of the kernel stack to detect stack overflow.
 
+### `copy_thread()`
+
+<img src="http://lastweek.io/notes/linux/stack_layout_fork.png" alt="stack_layout_fork" style="zoom: 25%;" />
+
+This is the stack layout after `copy_thread()`. Also the rough layout when the newly created thread is enqueued into runqueue.
+
+The top of the stack can be calculated with `task_stack_page(p)+THREAD_SIZE`. The stack grows from top to bottom.
+
+To the top of the kernel stack is the `struct pt_regs`. Here, `copy_thread()` used a structure called `struct fork_frame`, which contains a `struct inactive_task_frame` and a `struct pt_regs`. The bottom of the `struct fork_frame` is a field called `ret_addr`. This is essentially the first function (`ret_from_fork()`) gets run when this newly created thread gets running (scheduled by runqueue). 
+
+When the scheduler decides to run a thread, it will call `context_switch()`, which internally calls `switch_to()`, which is just a macro around `__switch_to_asm`.
+
+```c
+#define switch_to(prev, next, last)                                     \    
+do {                                                                    \    
+        ((last) = __switch_to_asm((prev), (next)));                     \    
+} while (0) 
+```
+
+`__switch_to_asm` is simply playing around the `struct fork_frame` we discussed above. It:
+
+- Saves the callee-saved registers.
+- Switches the stack pointer (`%rsp`) from Thread A's stack to Thread B's stack using the `TASK_threadsp` macro. This ensures that when Thread B is executed, it has its own separate stack.
+- Restores callee-saved registers for Thread B from its stack.
+
+Eventually, only the `ret_addr` field remains in the stack.
+
+**This is very important**: we **`jump`** to the `__switch_to()` (Note that it is different from `switch_to()`) function. Hence no return address will be pushed into the stack. Later on, when `__switch_to()` finishes and returns, the hardware will use the last field in the stack, which is the `ret_addr` field we placed there during `copy_thread()`.
+
 ### `sched_fork()`
 
 * Initialize data structures with regard to scheduling.
-* Denote running state with `state` in `task_struct`.
-* Inherit the priority from parent.
+
+* Set the `state` of the `task_struct` to `TASK_NEW` to indicate that the task has just beenc created and not yet able to be added to the scheduler.
+
+* Inherit the priority `normal_prio` from parent.
+
 * Set up priority class of child task.
+
+* Call `init_entity_runable_average()` to initialize the members related to the scheduling entity of the child process.
+
 * Call `__set_task_cpu()` function to set CPU for child process.
-* Call `task_fork()` of the scheduling class to finish some initialization of scheduler.
+
+* Call `task_fork()` of the scheduling class to finish some initialization of scheduler. The function will execute the scheduler-specific set of methods.
+
+  > ```c
+  > static void task_fork_fair(struct task_struct *p)
+  > {
+  > 	struct cfs_rq *cfs_rq;
+  > 	struct sched_entity *se = &p->se, *curr;
+  > 	struct rq *rq = this_rq();
+  > 	struct rq_flags rf;
+  >  
+  > 	rq_lock(rq, &rf);
+  > 	update_rq_clock(rq);
+  >  
+  > 	cfs_rq = task_cfs_rq(current);
+  > 	curr = cfs_rq->curr;   
+  > 	if (curr) {
+  > 		update_curr(cfs_rq);       
+  > 		se->vruntime = curr->vruntime;
+  > 	}
+  > 	place_entity(cfs_rq, se, 1);
+  >  
+  > 	se->vruntime -= cfs_rq->min_vruntime;
+  > 	rq_unlock(rq, &rf);
+  > }
+  > ```
+  >
+  > The `task_fork_fair` function is part of the Completely Fair Scheduler (CFS) in the Linux kernel, which is designed to ensure a fair distribution of CPU time among tasks.
+  >
+  > When called, the function is setting up the scheduling attributes for a newly forked task. It begins by declaring local variables for the run queue (`rq`), the scheduling entities (`se` and `curr`), and flags for the run queue (`rf`).
+  >
+  > To prevent concurrent modifications, the function locks the current run queue using `rq_lock(rq, &rf)`. It then updates the run queue's time reference with `update_rq_clock(rq)`.
+  >
+  > The function fetches the `cfs_rq`, the run queue for the Completely Fair Scheduler, associated with the currently executing task. If there is a currently executing scheduling entity on the run queue, it updates its statistics and sets the `vruntime` (virtual runtime) of the new task's scheduling entity (`se`) to match that of the current task's `vruntime`. **This ensures fairness in the task's starting execution time compared to others.**
+  >
+  > Next, it places the scheduling entity of the newly forked task into the run queue with the `place_entity` function.
+  >
+  > To make sure the newly forked task does not start at a disadvantage, it adjusts the `vruntime` of the scheduling entity by subtracting the `min_vruntime` of the run queue (the new process inherits the `vruntime` from `curr` and the `vruntime` of `curr` can be quite high. Therefore, the new process may be starved).
+  >
+  > Finally, the function releases the lock on the run queue using `rq_unlock(rq, &rf)`, allowing other tasks or operations to interact with the run queue.
+
 * Call `init_task_preempt_count()` to initialize `preempt_count` inside `thread_info`.
 
 ### Return from Creating Task Routines
 
-After calling `_do_fork()`, the child process is added to the scheduler and will be scheduled sooner or later. Therefore, `fork()` will return twice: once from the parent process and once from the child process after being scheduled.
+After calling `_do_fork()`, the child process is added to the scheduler and will be scheduled sooner or later. The new process will start from `ret_from_fork`.
+
+> **Arm64**
+>
+> If the new process is a kernel thread, the address of the thread function is stored in register x19, and the parameter of the thread function is stored in register x20. If the new process is a user process, the value of register x19 is 0.
+>
+> The execution process of function `ret_from_fork` is as follows:
+>
+> * The function `schedule_tail ` called to perform cleanup operations for the previous process.
+>
+> * If the value of register x19 is 0, it means that the current process is a user process. In this case, register x28 stores the address of current process's `thread_info` structure, and then jumps to label `ret_to_user` to return to user mode.
+>
+> * If the value of register x19 is not 0, it means that the current process is a kernel thread. In this case, it calls the thread function.
 
 `copy_thread_tls()` in `copy_process()`is a wrapper around `copy_thread()` in architectures where `tls` is not defined. It mainly set up the kernel context for the new child process. In ARM64, the `copy_thread()` function copies the parent's stack frame to the child process and sets the X0 register in the stack frame to 0. This indicates that `_do_fork` will return 0 when returning to user space.
 
-# Linux Scheduling
 
-## Priority and Weight
-
-There is a user-space variable called `nice` that indicates the priority of ordinary processes. This variable ranges from -20 to +19 and is mapped to a priority range of 100 to 139. The lower the value of `nice`, the higher the priority of the process.
-
-There are 4 members of `task_struct` indicating the priority of the task.
-
-* `prio` is the dynamic priority of the process which can be adjusted to tackle priority donation.
-* `static_prio` is the priority set when the task starts.
-* `normal_prio` is calculated based on `static_prio` and scheduling policy. For ordinary processes, it is the same as `static_prio`. For real time processes, it will be calculated according to `rt_priority`
-* `rt_priority` is the priority of real time processes.
-
-The schedulers also adopts the concept of 'weight' to denote the urgency of different processes.
-
-## Policy
-
-There are five scheduler classes implemented in Linux kernel right now: stop, deadline, realtime, CFS, idle
