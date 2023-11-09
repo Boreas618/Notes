@@ -10,6 +10,14 @@ With timeslicing, thread may be forced to give up CPU before finishing current C
 
 # Scheduling Policy
 
+There are four types of scheduling:
+
+- **Long-term scheduling**: Determines whether a job can enter the operating system and controls the degree of multiprogramming.
+- **Medium-term scheduling**: Swaps processes between suspended and active states to regulate resource utilization.
+- **Short-term scheduling**: Allocates processor resources to processes (or threads) in the ready queue.
+
+<img src="https://p.ipic.vip/tpmfhr.png" alt="Screenshot 2023-10-16 at 2.05.30 PM" style="zoom:50%;" />
+
 ## Simple Algorithms
 
 ### FCFS
@@ -24,9 +32,9 @@ $q$ must be large with respect to context switch, othewise the overhead is too h
 
 **If one task is done within its quantum, we immediately switch to next task.** We just don't want to waste any resource.
 
-Pros: Better for short jobs, Fair
+**Pros**: Better for short jobs and fair
 
-Cons: Context-switching time adds up for long jobs
+**Cons**: Context-switching time adds up for long jobs
 
 ### Shortest Remaining Time First
 
@@ -45,6 +53,14 @@ Suppose there are three jobs:
 
 **Cons**: Hard to predict future and unfair
 
+Due to the unpredictable nature of SRTF, it is more suitable for long-term scheduling, where the job time is more predictable.
+
+### High Response Ratio First
+
+$$
+R=\frac{\text{Waiting Time}+\text{Expected Service Time}}{\text{Expected Service Time}}
+$$
+
 ### Multi-Level Feedback Scheduling
 
 <img src="https://p.ipic.vip/f7awx4.png" alt="Screenshot 2023-06-18 at 5.09.57 AM" style="zoom:50%;" />
@@ -61,7 +77,7 @@ Scheduling must be done between the queues:
 
   Each queue gets a certain amount of CPU time. It may be like 70% to highest, 20% next and 10% lowest.
 
-## Priority-Based Approach
+## Priority-Based Approaches
 
 ### Strict Priority Scheduling
 
@@ -109,7 +125,7 @@ The **interactive credit** is earned when a task sleeps for a long time and spen
 
 The "interactive tasks" get special dispensation. They are simply placed back into active queue unless some other task has been starved for too long.
 
-### Drawback: Starvation
+### Starvation
 
 Starvation is not deadlock but deadlock is starvation. 
 

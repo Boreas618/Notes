@@ -1,10 +1,10 @@
 # Reasoning over Time or Space
 
-Often, we want to r**eason about a sequence** of observations (A changing world).
+Often, we want to **reason about a sequence** of observations (A changing world).
 
 # Markov (Transition) Models
 
-**Markov assumption**: the current state depends only on a finite fixed number of states.
+**Markov Assumption**: the current state depends only on a finite fixed number of states.
 
 Value of $X$ at a given time is called the **state**
 
@@ -18,26 +18,28 @@ Two functions dictate how the chain behaves: $P(X_1)$ and $P(X_t|X_{t-1})$
 
 Parameters are called **transition probabilities** or dynamic, specify how the state evolves over time (also, initial state probabilities)
 
-Stationarity assumption: transition probabilities the same at all times: $P(X_i|X_{i-1})=P(X_j|X_{j-1})$ $i \neq j$.
-
+**Stationarity Assumption**: transition probabilities the same at all times: 
+$$
+P(X_i|X_{i-1})=P(X_j|X_{j-1}) \text{ where } i \neq j.
+$$
 Each time step only depends on the previous. This is called the (first order) Markov property.
 
 ## Example
 
 <img src="https://p.ipic.vip/flqut7.png" alt="Screenshot 2023-05-29 at 1.08.34 PM" style="zoom:50%;" />
 
-* **State** $X=\{rain,sun\}$
+* **State** $X=\{\text{rain},\text{sun}\}$
 
-* **Initial distribution** 1.0 $sun$
+* **Initial distribution** 1.0 $\text{sun}$
 
 * **CPT** $P(X_t|X_{t-1})$
 
-| $X_{t-1}$ | $X_t$  | $P(X_t|X_{t-1})$ |
-| :-------: | :----: | :--------------: |
-|   $sun$   | $sun$  |       0.9        |
-|   $sun$   | $rain$ |       0.1        |
-|  $rain$   | $sun$  |       0.3        |
-|  $rain$   | $rain$ |       0.7        |
+|   $X_{t-1}$   |     $X_t$     | $P(X_t|X_{t-1})$ |
+| :-----------: | :-----------: | :--------------: |
+| $\text{sun}$  | $\text{sun}$  |       0.9        |
+| $\text{sun}$  | $\text{rain}$ |       0.1        |
+| $\text{rain}$ | $\text{sun}$  |       0.3        |
+| $\text{rain}$ | $\text{rain}$ |       0.7        |
 
 Given $P(X_1)$, $P(x_t)=\sum_{x_{t-1}} P(x_t, x_{t-1}) = \sum_{x_{t-1}} P(x_t|x_{t-1})P(x_{t-1})$.
 
@@ -47,7 +49,7 @@ For most chains: influence of the initial distribution gets less and less over t
 
 The distribution we end up with is called the **stationary distribution** $P_{\infin}$ of the chain. It satidfies $P_{\infin}(X)=P_{\infin+1}(X)=\sum_{x}P(X|x)P_{\infin}(x)$.
 
-What's $P(X)$ at time $t=infinity$?
+What's $P(X)$ at time $t=\infin$?
 $$
 P_{\infin}(X)=P_{\infin+1}(X)=\sum_{x} P(X|x)P_{\infin}(x)
 $$
@@ -84,23 +86,21 @@ State $X_n$ is independent of **all past states and all past evidence ($X_{0:n-2
 
 Evidence is independent of all past states and all past evidence given the current state.
 
-## Example of a LLM
+## Example of NER
 
-**Naive stage**: Learn the probability of a word given previous words $P(X_t|X_{t-1})$  The probability is usually given by a softmax operation.
+> John Smith works at OpenAI
+>
+> B-PER I-PER O O B-ORG
 
-**Further**: Learn parameters of a HMM. $P(X_1)$ $P(X_t|X_{t-1})$ $P(E_t|X_t)$
-
-Here, $E$ is a word like "cat". $X$ is a vector (hidden state) we don't know the actual meaning.
-
-**Finally**: Learn probability of a word given all previous words $P(X_i|X_1,...,X_{i-1})$
+Here, `John` is an **Observation** and `B-PER` is an **Hidden State**.
 
 # Inference
 
-There are two main types of jobs:
+Classical inference problems:
 
-* **Prediction**: Given the evidence gathered, the goal is to determine the future state, $P(X_{t+k} | e_{1:t})$ where k ≥ 0.
-
-- **Filtering or State Estimation**: The objective is to determine $B_t(X) = P(X_t | e_{1:t})$ based on the evidence available at each time.
+* **Filtering** (Inferring the present): The objective is to determine $B_t(X) = P(X_t | e_{1:t})$ based on the evidence available at each time.
+* **Prediction**: Given the evidence gathered, the goal is to determine the future state, $P(X_{t+k} | e_{1:t})$ where $k ≥ 0$.
+* **Most Likely Hidden Path** (Viterbi alignment): $\text{argmax}_{X_{1:t}}P(X_{1:t}|V_{1:t})$
 
 ## Prediction
 
@@ -137,21 +137,21 @@ B(X_t) = P(X_{t}|e_{1:t})
 $$
 
 $$
-P(X_{t+1}|x_t)
+P(X_{t+1}|X_t)
 $$
 
 Then after one time step passes:
 $$
-P(X_{t+1}|e_{1:t}) = \sum_{x_t} P(X_{t+1},x_t|e_{1:t})
+P(X_{t+1}|e_{1:t}) = \sum_{x_t} P(X_{t+1},X_t|e_{1:t})
 $$
 
 $$
-P(X_{t+1}|e_{1:t}) = \sum_{x_t}P(X_{t+1}|x_t, e_{1:t})P(x_t|e_{1:t})
+P(X_{t+1}|e_{1:t}) = \sum_{x_t}P(X_{t+1}|X_t, e_{1:t})P(X_t|e_{1:t})
 $$
 
 Given the current state, the next state is independent of all other nodes in the Bayes Net. Therefore,
 $$
-P(X_{t+1}|x_t, e_{1:t}) = P(X_{t+1}|x_t)
+P(X_{t+1}|X_t, e_{1:t}) = P(X_{t+1}|X_t)
 $$
 More compactly:
 $$

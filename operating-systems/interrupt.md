@@ -6,8 +6,8 @@ The control flow of the processor: Each transition from one address of a certain
 
 In the case, when the processor detects that the event has occured, it makes an indirect procedure call through a jump table called an **interrupt vector table**, to an operating system subroutine (the **interrupt handler**) that is specially designed to process this particular kind of event. When the exception handler finishes processing, one of three things happens, depending on the type of event that caused the exception:
 
-* returns to $I_{curr}$
-* returns to $I_{next}$
+* returns to $I_{\text{curr}}$
+* returns to $I_{\text{next}}$
 * Aborts the interrupted program
 
 ## Interrupt Handling

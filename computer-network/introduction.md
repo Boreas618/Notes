@@ -1,21 +1,14 @@
 # What is Internet
 
-ARPANET introduced the concepts of **resource subnet** and **communication subnet**.
+ARPANET introduced the concepts of **resource subnet** and **communication subnet**. Resource subnet is the edge of the network. Communication subnet is **Access Network**+ **Core Network**. Core network is comprised of many ISPs which provides **Internet accessing service**. Access network connects resource subnet to Internet.
 
-Resource subnet is the edge of the network.
-
-Communication subnet is **Access Network**+ **Core Network**.
-
-## A Nuts-and-Bolts Description
-
-There are billions of connected computing **devices**. The end systems are called the **hosts**. They run network apps at Internet's "edge".
+In modern Internet, there are billions of connected computing **devices**. The end systems are called the **hosts**. They run network apps at Internet's "edge".
 
 There are **packet switches** forwarding packets(chunks of data), which makes the Internet really connected. 
 
-* routers
-* switches
+There are routers and switches that send and forward packets.
 
- There are **communication links** like fibers, coppers, radios, satellites, etc.
+There are **communication links** like fibers, coppers, radios, satellites, etc.
 
 The **network**s are collections of devices, routers and links.
 
@@ -81,58 +74,6 @@ Host sending function
 * Tranmits packet into access network at **transmission rate R**
 * Link transmission rate, aka link **capacity**, aka **line bandwidth**
 
-# Network Architecture
-
-The lowest level of the network is the LAN. Ethernet is the most popular LAN technology. An **Ethernet segment** consists of some wires (usually twisted pairs of wires) and a small box called a **hub**. One end is attached to an **adapter** on a host, and the other end is attached to a **port** on the hub. Every host sees every bit the hub receives.
-
-Each Ethernet adapter has a globally unique 48-bit address that is stored in a nonvolatile memory on the adapter.
-
-A host can send a chunk of bits called **frame** to any other host on the segment. The **header** bits record source, destination, length. They are followed by the **payload** bits. Every host adapter sees the frame, but only the destination host actually reads it.
-
-Mutiple Ethernet segments are connected into **bridged Ethernets**, using a set of wires and small boxes called **bridges**. There are hub-bridge wires and bridge-bridge wires. 
-
-<img src="https://p.ipic.vip/dq2bw4.png" alt="Screenshot 2023-05-03 at 1.50.30 AM" style="zoom:50%;" />
-
-Multiple incompatible LANs can be connected by specialized computers called **routers** to form an **internet** (interconnected network). Each router has an adapter (port) for each network that it is connected to. **In general, routers can be used to build internets from arbitrary collections of LANs and WANs.**
-
-<img src="https://p.ipic.vip/trtw42.png" alt="Screenshot 2023-05-03 at 11.08.34 AM" style="zoom:50%;" />
-
-A layer of **protocol software** running on each host and router smooth out the difference between different networks. The protocol must provide two basic capabilities:
-
-* Naming scheme
-
-  Each host is assigned at least one of internet address that uniquely identifies it.
-
-* Delivery mechanism
-
-  The internet protocol defines a uniform way to bundle up data bits into discrete chunks called **packets**.
-
-<img src="https://p.ipic.vip/ha5o1u.png" alt="Screenshot 2023-05-03 at 11.17.40 AM" style="zoom:50%;" />
-
-1. The client copies the data from its virtual address space into the kernel buffer.
-
-2. The protocol softeware on host A creates **a LAN1 frame** by appending an **internet packet header** and a **LAN1 frame header** to the data.
-
-   **internet packet header** is addressed to internet host B.
-
-   LAN1 **frame header** is addressed to the router (i.e. MAC address).
-
-   The payload of the LAN1 frame is an internet packet, whose payload is the actual user data.
-
-3. The LAN1 adapter copies the frame to the network.
-
-4. When the frame reaches the router, the router’s LAN1 adapter reads it from the wire and passes it to the protocol software
-
-5. The router fetches the destination internet address from the internet packet header and uses this as an index into a routing table to determine where to forward the packet, which in this case is LAN2. The router then strips off the old LAN1 frame header, prepends a new LAN2 frame header addressed to host B, and passes the resulting frame to the adapter.
-
-6. The router’s LAN2 adapter copies the frame to the network.
-
-7. When the frame reaches host B, its adapter reads the frame from the wire and passes it to the protocol software.
-
-8. Finally, the protocol software on host B strips off the packet header and frame header. The protocol software will eventually copy the resulting data into the server’s virtual address space when the server invokes a system call that reads the data.
-
-The two predominant architectural paradigms used in modern network applications: the **client-server** architecture or the **peer-to-peer (P2P)** architecture.
-
 # Switching Technology
 
 **Node**: devices participating in the network.
@@ -140,6 +81,9 @@ The two predominant architectural paradigms used in modern network applications:
 **One-hop link**: connect ***adjacent*** nodes with transmission media.
 
 <img src="https://p.ipic.vip/4tkgwc.png" alt="Screenshot 2023-09-10 at 1.40.15 AM" style="zoom:50%;" />
+
+* **Point-to-point link** (点到点电路): There is a node at each end of the link.
+* **Point-to-multipoint link** (点到多点电路): One end of the link is a single node, while the other end connects to multiple nodes.
 
 **Switching**: in multi-hop transmission, how to allocate link resource to forward information? Fully connected graph is not feaisble. Two approaches are raised:
 
@@ -151,6 +95,10 @@ The two predominant architectural paradigms used in modern network applications:
 The actual lines between nodes are called **physical circuit**s.
 
 Physical circuits can be devided into multiple **logical circuit**s with **multiplexing**.
+
+* Frequency Division Multiplexing (频分多路复用)
+
+* Time Division Multiplexing (时分多路复用)
 
 Circuit switching adopts a connection-oriented approach to achieve end-to-end reserved resources. **Once the connection is established, the transmission of information is guranteed.**
 
@@ -168,13 +116,15 @@ The content to be sent is called **packet**（分组或包）. The original cont
 
 路由与转发
 
+**Statistical Time Division Multiplexing**: 统计时分多路复用，分组按需共享信道
+
 **Router**: global operation. Control panel. It decides the router licenses and algotihms.
 
 **Forward**: local operation. Data panel. It sends the packets received to the next hop.
 
 # Performance Metrics
 
-**Data Rate**: The data rate, also known as bit rate, is the amount of data that can be transmitted over a network in a given period of time. It is usually measured in bits per second (bps) or bytes per second (Bps). Note that when using K, M, G, T for packet lengths, the default is binary. The majority of network textbooks still use this descriptive method.
+**Data Rate**: The data rate, also known as bit rate, is the amount of data that can be transmitted over a network in a given period of time. It is usually measured in **bits per second (bps)** or **bytes per second (Bps)**. Note that when using K, M, G, T for packet lengths, the default is binary. The majority of network textbooks still use this descriptive method.
 $$
 \text{KiB} = \text{Kilo Binary Byte} \\
 \text{KB} = \text{Kilo Byte}
@@ -225,23 +175,91 @@ $$
 \text{BDP} = \text{Bandwidth} \times \text{Delay}
 $$
 
+# Network Architecture
+
+The lowest level of the network is the LAN. Ethernet is the most popular LAN technology. An **Ethernet segment** consists of some wires (usually twisted pairs of wires) and a small box called a **hub**. One end is attached to an **adapter** on a host, and the other end is attached to a **port** on the hub. Every host sees every bit the hub receives.
+
+Each Ethernet adapter has a globally unique 48-bit address that is stored in a nonvolatile memory on the adapter.
+
+A host can send a chunk of bits called **frame** to any other host on the segment. The **header** bits record source, destination, length. They are followed by the **payload** bits. Every host adapter sees the frame, but only the destination host actually reads it.
+
+Mutiple Ethernet segments are connected into **bridged Ethernets**, using a set of wires and small boxes called **bridges**. There are hub-bridge wires and bridge-bridge wires. 
+
+<img src="https://p.ipic.vip/dq2bw4.png" alt="Screenshot 2023-05-03 at 1.50.30 AM" style="zoom:50%;" />
+
+Multiple incompatible LANs can be connected by specialized computers called **routers** to form an **internet** (interconnected network). Each router has an adapter (port) for each network that it is connected to. **In general, routers can be used to build internets from arbitrary collections of LANs and WANs.**
+
+<img src="https://p.ipic.vip/trtw42.png" alt="Screenshot 2023-05-03 at 11.08.34 AM" style="zoom:50%;" />
+
+A layer of **protocol software** running on each host and router smooth out the difference between different networks. The protocol must provide two basic capabilities:
+
+* Naming scheme
+
+  Each host is assigned at least one of internet address that uniquely identifies it.
+
+* Delivery mechanism
+
+  The internet protocol defines a uniform way to bundle up data bits into discrete chunks called **packets**.
+
+<img src="https://p.ipic.vip/ha5o1u.png" alt="Screenshot 2023-05-03 at 11.17.40 AM" style="zoom:50%;" />
+
+1. The client copies the data from its virtual address space into the kernel buffer.
+
+2. The protocol softeware on host A creates **a LAN1 frame** by appending an **internet packet header** and a **LAN1 frame header** to the data.
+
+   **internet packet header** is addressed to internet host B.
+
+   LAN1 **frame header** is addressed to the router (i.e. MAC address).
+
+   The payload of the LAN1 frame is an internet packet, whose payload is the actual user data.
+
+3. The LAN1 adapter copies the frame to the network.
+
+4. When the frame reaches the router, the router’s LAN1 adapter reads it from the wire and passes it to the protocol software
+
+5. The router fetches the destination internet address from the internet packet header and uses this as an index into a routing table to determine where to forward the packet, which in this case is LAN2. The router then strips off the old LAN1 frame header, prepends a new LAN2 frame header addressed to host B, and passes the resulting frame to the adapter.
+
+6. The router’s LAN2 adapter copies the frame to the network.
+
+7. When the frame reaches host B, its adapter reads the frame from the wire and passes it to the protocol software.
+
+8. Finally, the protocol software on host B strips off the packet header and frame header. The protocol software will eventually copy the resulting data into the server’s virtual address space when the server invokes a system call that reads the data.
+
 # Network Model
 
-OSI model comprises:
+## Encapsulation and Decapsulation
+
+An interface defines the primitives that a lower layer can provide to the upper layer. The lower layer provides services to the upper layer through a **service access point**. The data exchanged at the interface is called a **service data unit**. Equivalent entities exchange **protocol data units**.
+
+Each layer receives an SDU from the upper layer, encapsulates it into a new PDU, and sends the new PDU to an even lower layer.
+
+<img src="https://p.ipic.vip/8c4lw7.png" style="zoom:50%;" />
+
+* **Application PDU:** Message (消息或报文)
+
+* **Transport PDU: ** (TCP)Segment/(UDP)Datagram (段/数据报)
+
+* **Network PDU:** Datagram/Packet (数据报/分组)
+
+* **Link PDU:** Frame (帧)
+
+* **Physical PDU:**  bit (比特)
+
+## OSI model
 
 **Physical Layer**: How to transmit bits
 
-**Data Link Layer**: How to transmit frames between adjacent nodes
+**Data Link Layer**: How to transmit frames between adjacent nodes. The data link layer combines bits into frames. It provides error detection and (optional) error control. It also supports flow control.
 
 These two layers can be packed as subnet layer in TCP/IP.
 
-**Network Layer**: How to transmit (route) packets between nodes
+**Network Layer**: (IP) How to transmit (or route) packets from a source node through multiple hops to a destination node. It supports congestion control, QoS control. IP address is used to uniquely identify nodes in the network.
 
 It can be called **Internet Layer** in TCP/IP.
 
-**Transport Layer**: How to send data between end systems
+**Transport Layer**: How to send data between end systems. 
 
-**Session Layer**: How to connect and organize streams of packets
+**Session Layer**: How to connect and organize streams of packets. Like RPC and SOCKET.
 
 **Presentation Layer**: Information representation, security, etc.
 

@@ -20,9 +20,9 @@ In the Linux kernel, both threads and processes are encapsulated using the `task
 
 ## Thread Family
 
-`init_task` is the kernel's first process (process 0) initialized at launch, acting as the idle or swapper process. Before the `start_kernel()` function starts user-space process initialization, the kernel establishes its core data structures, including the task structure for `init_task`. By the end of `start_kernel()`, the `rest_init()` function spawns the `init` process (process 1) in user-space, making it the first user-space process initiated by the kernel. 
+The kernel's first process, often known as the idle or swapper process, is initialized at launch with PID 0 and is responsible for managing CPU idle time. When the kernel is booted, the `start_kernel()` function is called to establish its core data structures, including initializing the `init_task` and call `cpu_idle()` to make itself be the idle process.
 
-Once process 0 starts process 1, it runs `cpu_idle()`, and the CPU enters an idle state if no other processes are ready. Process 1 triggers the `kernel_init()` function, which calls `execve` to load executables like `/sbin/init`. Consequently, process 1 becomes a standard process, executing tasks based on `/etc/inittab`.
+After completing the initial setup, the `rest_init()` function is called at the end of `start_kernel()` to continue the initialization process, which includes starting kernel threads that will eventually launch the first user-space process, `init`, with PID 1. This `init` process then invokes the `execve` system call to execute the user-space initialization program, typically `/sbin/init` or a modern equivalent like `/bin/systemd`. This process becomes the parent of all other user-space processes and is responsible for the system's further initialization, which may or may not involve reading the `/etc/inittab` file, depending on the init system in use.
 
 ## `task_struct` 
 
@@ -440,5 +440,4 @@ After calling `_do_fork()`, the child process is added to the scheduler and will
 > * If the value of register x19 is not 0, it means that the current process is a kernel thread. In this case, it calls the thread function.
 
 `copy_thread_tls()` in `copy_process()`is a wrapper around `copy_thread()` in architectures where `tls` is not defined. It mainly set up the kernel context for the new child process. In ARM64, the `copy_thread()` function copies the parent's stack frame to the child process and sets the X0 register in the stack frame to 0. This indicates that `_do_fork` will return 0 when returning to user space.
-
 

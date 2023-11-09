@@ -1,3 +1,68 @@
+# Storage Technologies
+
+## Disk Storage
+
+Disks are composed of platters, each of which has two sides coated with magnetic recording material. These surfaces are divided into concentric rings called tracks, and each track is further divided into sectors. Each sector holds an equal number of data bits (typically 512 bytes) encoded in the magnetic material. Sectors are separated by gaps, which store formatting bits that identify them.
+
+A disk consists of one or more platters stacked on top of each other and encased in a sealed package.
+
+A cylinder is the collection of tracks on all surfaces that are equi-distant from the center of the spindle.
+
+$$
+bytes \rightarrow sectors\rightarrow tracks\rightarrow surfaces\rightarrow platters\rightarrow disks
+$$
+![Untitled](https://p.ipic.vip/1kuvm1.jpg)
+
+**Disk with multiple platters have a separate read/write head for each surface.** The heads are lined up vertically and move At any point in time, all heads are positioned on the same cylinder.
+
+**Disk Operation**
+
+Disk read and write data in sector-size blocks. The access time for a secotr has three main components: seek time, rotational latency, and transfer time.
+
+- Seek time: move the arm to the specified track
+- Rotational latency: find the first bit of the target sector
+- Transfer time: read or write the contents of the sector
+
+---
+
+The time to access the 512 bytes in a disk sector is dominated by the seek time and rotational latency.
+
+**Logic Disk Blocks**
+
+To hide the comlexity of the disk from the operating system, modern disks present a simpler view of their geometry as a sequence of B sector-size logical blocks numbered 0, 1, … , B - 1. A small hardware/firmware device in the disk package, called disk controller, maintains the mapping between logical block numbers and actual (physical) disk sectors.
+
+**Connecting I/O Devices**
+
+Peripheral devices such as graphics cards, mice, keyboards, and disks communicate with the CPU and main memory using various bus systems, often facilitated by distinct bridging components.
+
+1. **Host Bridge**: Typically, the main connection between the CPU and the primary memory (RAM) is managed by the host bridge. In some architectures, it might also handle communications with high-speed devices like graphics cards. The host bridge ensures rapid data exchanges between these components, especially where latency and bandwidth are crucial.
+2. **I/O Bridge**: This bridge manages the communication between the CPU/main memory and many I/O devices. Devices like keyboards, mice, disks, and even some communication ports fall under its purview. The I/O bridge ensures data is effectively and accurately transferred between the main system and these peripherals, even if these data transfers are not as high-speed as those managed by the host bridge.
+
+To note, I/O buses, often managed by the I/O bridge, are designed to be compatible across a variety of CPU architectures, allowing for a wide range of devices to be connected without significant compatibility issues.
+
+> I/O bridge can be part of the southbridge in older PC architectures, which is responsible for connecting lower-speed peripheral devices to the system.
+>
+> Host bridge is also known as the Northbridge in traditional PC architectures.
+
+A host bus adapter connects one or more disks to the I/O bus using a communication protocol defined by a particular host bus interface, such as SCSI or SATA. A SCSI host bus adapter can support multiple disk drives as opposed to SATA adpaters, which can only support one drive.
+
+**Accessing Disks**
+
+The CPU issues commands to I/O devices using a technique called **memory-mapped I/O**. A block of addresses in the address in the address space is known as an I/O port. Each device is assoicated with(or mapped to) one or more ports when it is attached to the bus.
+
+The disk reads the data and transfers it directly to the memory without going through the CPU. The process is called direct memory access (DMA).
+
+After the DMA transfer is complete and the contents of the disk sector are safely stored in main memory, the disk controller notifies the CPU by sending an interrupt signal to the CPU. An interrupt signals an external pin on the CPU chip. This causes the CPU to stop what it is currently working on and jump to an operating system routine. The routine records the fact that the I/O has finished and then returns control to the point where the CPU was interrupted.
+
+## Solid State Disks
+
+An SSD package consists of one or more flash memory chips and **a flash translation layer**, which is a hardware/firmware device that plays the same role as a disk controller.
+
+$$
+page\rightarrow block \rightarrow flash\space memory
+$$
+A flash memory consists of a sequence of $B$ blocks, where each block consists of $P$ pages. Typically, pages are 512 bytes to 4KB in size, and a block consists of 32-128 pages, with total block sizes ranging from 16KB to 512 KB. **Data are read and written in units of pages.** A page can be written only after the entire block to which it belongs has been erased (All bits in the block set to 1). It takes a long time.
+
 # File System Design
 
 **File systems**: Layer of OS that transforms block interface of disks (or other block devices) into Files, Directories, etc.

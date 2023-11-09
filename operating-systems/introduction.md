@@ -18,105 +18,64 @@
 
   Asynchronism allows a system to initiate a task without waiting for it to complete. Once the task is initiated, the system can proceed to other tasks, returning to the original task once it is completed.
 
-## Interfaces
-
-* Command Interfaces
-  * Online Command Interface: user input commands. Preemptive/RT
-  * Offline Command Interface: batch processing command interface. Batch processing system
-* Programming Interfaces (Generalized Instruction)
-
-## **Kernel Components**
-
-* Timer Management
-* Interrupt Mechanism
-* Atomic Operation
-* System Data Structures
-
-## Evaluation Criteria of operating systems
-
-*   Reliability
-
-    Avalibility
-
-    MTTF (mean time to faliure)
-
-    MTTR (mean time to repair)
-*   Security
-
-    Enforcement: how the operating system ensures that only permitted actions are allowed
-*   Portability
-
-    A portable abstraction doesn’t change as the hardware changes
-
-    AMI (abstract machine interface): the interface provided by operating systems to applications
-
-    API (applicaiton programming interface): a key part of AMI
-
-    HAL (hardware abstraction layer): an operating system implement independent of the hardware details
-*   Performance
-
-    Overhead: the added resource cost of implementing an abstraction
-
-    One way to measure eﬃciency (or inversely, overhead) is the degree to which the abstraction impedes application performance.
-
-    Throughput: the rate at which a group of tasks can be completed
-
-    Predictability: whther the system’s response time or other performance metric is consistent over time
-
-    A proprietary system vs. an open system
-
-Modern operating system: time-sharing
-
 # OS Booting
 
-Use Linux as an example.
+When a computer is powered on, it undergoes a series of steps to initialize the hardware components and load the operating system. This process is known as OS booting. In this guide, we will use Linux as an example to explain this process in detail.
 
-## **BIOS/UEFI Initialization Phase**
+## BIOS/UEFI Initialization Phase
 
-**BIOS (Basic Input/Output System)** and **UEFI (Unified Extensible Firmware Interface)** serve as the cornerstone firmware interfaces in computer systems, playing the pivotal role of bootstrapping the computer by initializing all essential hardware components.
+BIOS (Basic Input/Output System) and UEFI (Unified Extensible Firmware Interface) are firmware interfaces that play a critical role in the boot process. They initialize the necessary hardware components and set the stage for the operating system to take over. Here's a step-by-step breakdown of the process:
 
-Upon powering up the computer, the firmware (either BIOS or UEFI) begins its process, with the **POST (Power-On Self-Test)** being the first step. POST is a diagnostic testing sequence responsible for conducting preliminary hardware checks. It ensures that all critical components like memory, processor, and storage devices are functioning properly. Once POST is successfully completed, the system then looks for a bootloader to initiate the operating system loading process.
+### Power-On and Initiation of Firmware
 
-For systems with a BIOS, the firmware checks the **Master Boot Record (MBR)** on the primary storage device. The MBR contains a partition table which identifies the active partition. The BIOS then reads the **Partition Boot Record (PBR)** of the active partition, which houses the bootloader necessary for loading the operating system.
+Upon powering on the computer, the installed firmware—either BIOS or UEFI—initiates. This firmware acts as a bridge between the computer's hardware and the operating system, facilitating communication between the two.
 
-In contrast, modern systems with UEFI don't rely on the MBR. Instead, they look for the **EFI System Partition (ESP)** on the storage device. The ESP is a special partition that stores UEFI bootloaders and other utility applications necessary for the boot process, including the bootloader for the operating system.
+### POST (Power-On Self-Test)
 
-## **Bootloader**
+The firmware conducts the POST, a diagnostic procedure that checks the status and functionality of critical hardware components such as the memory, processor, and storage devices. This step ensures that the system is free of hardware issues before proceeding to the boot process.
 
-Its primary role is to load the system's kernel into memory so that the system can start. In the Linux world, the bootloader is the first software that runs when a system is powered on. In the context of Linux, there are several bootloaders, with GRUB and LILO being among the most popular.
+### Boot Device Selection and Boot Record Reading
 
-### **GRUB (Grand Unified Bootloader)**
+* BIOS Systems
 
-GRUB is a versatile bootloader with multi-platform support. It can boot various operating systems, and its configuration is both powerful and flexible. Its stages are as follows:
+  1. **Boot Device Selection**: BIOS identifies the boot device from a predefined list stored in the CMOS memory, which retains information about the system's hardware configuration.
 
-#### **MBR Stage**:
+  2. **Master Boot Record (MBR) Reading**: After the BIOS completes the POST and identifies the bootable device, it reads the MBR located on the primary storage device. The MBR contains a partition table that indicates the active partition where the operating system resides, as well as the first stage of the bootloader.
+  3. **Partition Boot Record (PBR) Reading**: Following the MBR reading, the first stage of the bootloader initiates and accesses the PBR of the active partition. The PBR houses the second stage of the bootloader, which is necessary for initiating the OS loading process. This stage of the bootloader is more complex and is responsible for loading the essential files to start the operating system.
 
-- **GRUB Stage 1**: If your system is set up using the MBR (Master Boot Record) partitioning scheme, GRUB's first stage is stored within the MBR. This is limited to a mere 512 bytes. Due to its small size, its primary task is to find and load the next stage of the bootloader. It does this by either:
-  - Loading **Stage 1.5**: Found in the first 32KB following the MBR on the storage device. This space is generally unallocated and free. Stage 1.5 knows the filesystem layout and can directly load Stage 2 from it.
-  - Directly loading **Stage 2**: In some setups where Stage 1.5 is not present.
+* UEFI Systems
+  1. **EFI System Partition (ESP) Identification**: UEFI systems identify the ESP on the storage device, a special partition that contains UEFI bootloaders and utility applications essential for the boot process, including the OS bootloader.
 
-#### **UEFI Stage**:
+## Bootloader Phase
 
-Modern systems, especially those post-2010, often come with UEFI (Unified Extensible Firmware Interface) instead of the legacy BIOS system. UEFI has many advantages over BIOS, such as:
+The bootloader is the first software to run when a system is powered on. Its main function is to load the system's kernel into memory, initiating the startup process. In Linux, popular bootloaders include GRUB and LILO.
 
-- Faster boot times
-- Better security features
-- Native support for larger drives
-- A GUI interface and mouse support
+### GRUB (Grand Unified Bootloader)
 
-For systems with UEFI: The UEFI firmware loads the EFI binary that GRUB provides. This binary is typically stored on the EFI system partition, a small, separate partition that contains boot-related files.
+GRUB is a versatile bootloader with support for multiple platforms and operating systems. It offers a powerful and flexible configuration. Here's a breakdown of its stages:
 
-#### **Stage 2**:
+#### 1. Initial Stage (MBR or UEFI)
 
-Regardless of whether the system uses MBR or UEFI, Stage 2 is common:
+- MBR Stage
 
-- **Configuration Loading**: At this stage, GRUB looks for its configuration file, usually located at `/boot/grub/grub.cfg`. This file contains the menu entries and various boot options.
-- **Menu Presentation**: The user sees the familiar GRUB menu, where they can choose which operating system or kernel version to boot. If no choice is made within a specified timeout, the default entry is booted.
-- **Kernel Loading**: Upon the user's selection or after the timeout, GRUB loads the selected Linux kernel and initial ramdisk (if any) into memory. Once loaded, control is transferred to the kernel, and the actual OS starts booting.
+  - Stage 1
 
-### **LILO (LInux LOader)**
+    Stored within the MBR, this stage is limited to 512 bytes and primarily locates and loads the next stage of the bootloader, either by:
 
-Though not as popular as GRUB in recent distributions, LILO has its historical significance. Unlike GRUB, which is more versatile and can understand filesystems, LILO relies on block mapping to boot the kernel. This means each time you change the configuration, LILO needs to be rewritten to the MBR. The simplicity of LILO, however, made it a preferred choice for many Linux enthusiasts in the earlier days.
+    - Loading **Stage 1.5**: Found in the first 32KB following the MBR. This stage understands the filesystem layout and can directly load Stage 2.
+    - Directly loading **Stage 2**: In setups where Stage 1.5 is not present.
+  
+- UEFI Stage
+
+  - For UEFI systems, the firmware loads the EFI binary provided by GRUB, typically stored on the ESP. UEFI offers several advantages over BIOS, including faster boot times, enhanced security features, support for larger drives, and a GUI interface with mouse support.
+
+#### 2. Main Bootloader Stage (Stage 2)
+
+- **Configuration Loading**: GRUB locates its configuration file, usually found at `/boot/grub/grub.cfg`, which contains menu entries and various boot options.
+- **Menu Presentation**: The GRUB menu is displayed, allowing users to select an operating system or kernel version to boot. If no selection is made within a specified timeout, the default entry is booted.
+- **Kernel Loading**: GRUB loads the selected Linux kernel and initial ramdisk (if any) into memory. Control is then handed over to the kernel, and the OS begins to boot.
+
+By following these steps, both BIOS and UEFI systems successfully initialize the hardware components and facilitate a smooth transition to the operating system, ensuring a successful boot process.
 
 ## **Kernel Loading Phase**
 
@@ -231,7 +190,7 @@ In `pintos_init()`
 
 13. Finally, if **`-q`** was specified on the kernel command line, we call `shutdown_power_off()` to terminate the machine simulator. **Otherwise**, `pintos_init()`calls **`thread_exit()`**, which allows any other running threads to continue running.
 
-## PC BOOTSTRAP
+## PC Bootstrap
 
 **The process of loading the operating system into memory for running after a PC is powered on is commonly known as *bootstrapping.***
 
@@ -241,7 +200,7 @@ IA32 bootloaders generally have to fit within 512 bytes in memory for a partitio
 
 The BIOS and bootloader should be written in assembly.
 
-### The PC’s physical address space
+### The PC’s Physical Address Space
 
 ```
 	+------------------+  <- 0xFFFFFFFF (4GB)
@@ -286,7 +245,7 @@ Modern PCs therefore have a "hole" in physical memory from 0x000A0000 to 0x00100
 
 In addition, **some space at the very top of the PC's 32-bit physical address space**, above all physical RAM, **is now commonly reserved by the BIOS for use by 32-bit PCI devices.**
 
-## BOOTLOADER
+## Bootloader
 
 Floppy and hard disks for PCs are divided into 512-byte regions called sectors.
 
@@ -302,7 +261,7 @@ Other segment registers include **SS for the stack segment, DS for the data segm
 
 It should be noted that each segment is 64KiB in size. Since bootloaders often need to load kernels larger than 64KiB, they must carefully utilize the segment registers.
 
-## PHYSICAL MEMORY MAP
+## Physical Memory Map
 
 | Memory Range (0x)  | Owner    | Contents                                                     |
 | ------------------ | -------- | ------------------------------------------------------------ |
