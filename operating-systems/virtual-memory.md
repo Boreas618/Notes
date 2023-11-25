@@ -1,36 +1,3 @@
-# Handling Page Fault
-
-A page fault occurs when a program tries to access a page that is not currently in physical memory. When this happens:
-
-1. The OS searches for a free frame to allocate for the requested page.
-    - The OS maintains a "free list" data structure that tracks available frames in the system. This list can be implemented as a linked list, bitmap, or another efficient data structure.
-    - A free frame is selected from the free list for the incoming page.
-  
-2. If no free frame is available:
-    - The OS selects an old page that should be replaced.
-    - If the old page was modified (indicated by the "D=1" flag), it writes its contents back to the disk.
-    - The Page Table Entry (PTE) for the old page is updated to mark it as invalid. Simultaneously, any entries for this page in the cached Translation Lookaside Buffer (TLB) are invalidated.
-  
-3. The new page is loaded from the disk into memory.
-  
-4. The PTE for the new page is updated, and the corresponding entry in the TLB is invalidated.
-
-5. Execution resumes from where the page fault originally occurred.
-
-During the page retrieval process, the OS can schedule another process from the ready queue to run. Meanwhile, the process waiting for the page retrieval is placed in the wait queue.
-
-# Memory Management Strategies to Handle Memory Pressure
-
-When the available memory becomes congested, the OS employs various strategies to optimize utilization:
-
-1. **Reaper Mechanism**: Used mainly in Unix-like operating systems, the reaper identifies and frees memory no longer in active use, reclaiming space from terminated or idle processes.
-
-2. **Dirty Pages Handling**: To ensure data integrity and free up memory, the OS schedules dirty pages (pages that have been modified but not yet written back to disk) to be written back to the disk.
-
-3. **Page Zeroing/Aging**: Pages that haven't been accessed for a considerable time, termed as "clean" or unchanged pages, can be zeroed out and reclaimed.
-
-4. **Eviction of Dirty Pages**: If memory pressure is high and there are no clean pages available, the OS might choose to evict a dirty page. This means writing the page back to disk and marking it as available for future use.
-
 # Preventing Page Fault
 
 **Compulsory Misses**: Pages that have never been paged into memory before.
@@ -39,16 +6,16 @@ Prefetching: loading them into memory before needed. Need to predict future some
 
 **Capacity Misses**: Not enough memory. Must somehow increase available memory size.
 
-* **Option 1**: Increase amount of DRAM (not quick fix!)
+* **Option 1**: Increase amount of DRAM (not quick fix)
 * **Option 2**: If multiple processes in memory: adjust percentage of memory allocated to each one!
 
 **Conflict Misses**: Technically, conflict misses don’t exist in virtual memory, since it is a "fully-associative" cache
 
 **Policy Misses**: Caused when pages were in memory, but kicked out prematurely because of the replacement policy
 
-Your content provides an extensive understanding of various page replacement algorithms. I've made a few corrections and adjustments to ensure clarity, accuracy, and cohesiveness:
-
 # Replacement Policies
+
+We introduce some classic replacement policies here.
 
 ## FIFO (First In, First Out)
 - Replace the oldest page.
@@ -63,16 +30,16 @@ Your content provides an extensive understanding of various page replacement alg
 ## MIN (Minimum)
 - Replace the page that will remain unused for the longest upcoming duration.
 - Theoretically optimal, but forecasting future access is infeasible.
-- **Note:** Past access patterns can serve as future predictors.
+- **Note:** We can use past access patterns for future predictors. This is basically what LRU done.
 
 ## LRU (Least Recently Used)
 - Replace the page that has been unused for the longest duration.
 - Based on the principle of locality: infrequently accessed items will likely remain so.
 - LRU is considered a good practical approximation to MIN.
 
-**For MIN and LRU**: Adding memory generally decreases the miss rate. This is termed as "rate drops." But for FIFO, this reduction isn't guaranteed, leading to Bélády’s anomaly：
-
-<img src="https://p.ipic.vip/sjopmr.png" alt="Screenshot 2023-06-30 at 3.15.53 AM" style="zoom:50%;" />
+> **For MIN and LRU**, adding memory generally decreases the miss rate. But for FIFO, this reduction isn't guaranteed, leading to Bélády’s anomaly：
+>
+> <img src="https://p.ipic.vip/sjopmr.png" alt="Screenshot 2023-06-30 at 3.15.53 AM" style="zoom:50%;" />
 
 ## Approximating LRU: Clock Algorithm
 
@@ -81,17 +48,12 @@ Your content provides an extensive understanding of various page replacement alg
 - Approximates LRU.
 - Replaces an old page but not necessarily the oldest.
 
-**Key Features**:
-- Hardware-supported "use" bit for each physical page (termed “accessed” in some architectures).
-- The hardware updates this "use" bit upon each reference.
-- A cleared "use" bit indicates the page hasn't been referenced for a while.
-- Some systems handle the "use" bit in the TLB, necessitating its replication to the actual page when the TLB entry is replaced.
+There is a hardware-supported "use" bit for each physical page (termed “accessed” in some architectures). The hardware updates this "use" bit upon each reference. A cleared (not set) "use" bit indicates the page hasn't been referenced for a while.
 
-**On a page fault**:
-- The clock hand progresses (not synced with real time).
-- Use bit check:
-  - 1: Recently used; reset it and proceed.
-  - 0: Designate as a replacement candidate.
+The clock hand progresses (on a page fault) and checks the use bit:
+
+- 1: Recently used; reset it and proceed.
+- 0: Designate as a replacement candidate.
 
 The algorithm's design guarantees eventual page replacement, unless all pages are frequently accessed.
 
@@ -100,20 +62,13 @@ Pages are informally classified based on their "use" bit status:
 - Set (1): "Young" or recently accessed.
 - Cleared (0): "Old" or infrequently accessed.
 
-## Nth Chance Version of Clock Algorithm
+## N-th Chance Version of Clock Algorithm
 
 This version enhances the standard Clock Algorithm by tracking the number of "sweeps" (clock hand rotations) a page remains unused.
 - The counter is reset when a page's "use" bit is 1.
 - If the "use" bit is 0, the counter increments, and replacement occurs when it hits N.
 - A higher N brings the algorithm closer to LRU. However, finding a replaceable page might necessitate numerous clock cycles.
 - The "dirty" status of a page (indicating modifications) is also considered. This ensures data consistency by writing back changes before potential replacements.
-
-## Clock-Emulated-M
-
-This variant doesn't rely on hardware-supported "modified" bits; instead, it uses a read-only bit.
-- Initially, all pages are designated as read-only. Any write operation will cause a fault.
-- Upon a valid write, the system tags the page as writable and updates the "modified" status.
-- Pages reset to read-only when their modifications are saved to disk.
 
 ## Second-Chance List Algorithm
 
@@ -125,12 +80,6 @@ This blends the simplicity of FIFO with the efficacy of LRU.
   - If absent in both, brings the new page into the Active List, displacing the LRU page from the SC List.
 
 Depending on the SC List's allocation, the algorithm can behave like FIFO, LRU, or a hybrid.
-
-## Freelist
-
-Removed pages (e.g., by the Clock Algorithm) are stored in a freelist—essentially a reserve of inactive but instantly available pages.
-- Managed by the "Pageout daemon," a background process overseeing memory management via the Clock Algorithm.
-- Modified or "dirty" pages on the freelist initiate a save-to-disk operation to avoid potential data loss.
 
 # Allocation of Page Frames
 
@@ -155,7 +104,7 @@ $s_i$ = size of process $p_i$ and $S=\sum s_i$
 
 $m$ = total number of physical frames in the system
 
-$a_i$ = (allocation for $p_i$) =$\frac{s_i}{S} \times$
+$a_i$ = (allocation for $p_i$) =$\frac{s_i}{S} \times m$
 
 ## Priority Allocation
 
@@ -175,13 +124,13 @@ We want find a balance between page-fault rate and number of frames. We dynamica
 
 **Working-Set Model**: $\Delta$is the working-set window º= fixed number of page references (Example: 10,000 instructions)
 
-WSi (working set of Process Pi) = total set of pages referenced in the most recent D (varies in time)
+$WS_i$ (working set of Process $P_i$) = total set of pages referenced in the most recent $D$ (varies in time)
 
-* if D too small will not encompass entire locality
-* if D too large will encompass several localities
-* if D = $\infin$ will encompass entire program
+* If $D$ is too small, we will not encompass entire locality
+* If $D$ is too large, we will encompass several localities
+* If $D$ = $\infin$, we will encompass entire program
 
-$D$ = $\sum|WSi|$ total demand frames 
+$D$ = $\sum|WS_i|$ total demand frames 
 
 If D > m $\rightarrow$Thrashing:
 
