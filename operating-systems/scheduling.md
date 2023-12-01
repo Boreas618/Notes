@@ -22,6 +22,8 @@ There are four types of scheduling:
 
 ### FCFS
 
+Favor CPU-bound processes over I/O-bound processes..
+
 **Convoy effect**: short process stuck behind long process.
 
 ### Round Robin
@@ -34,7 +36,9 @@ $q$ must be large with respect to context switch, othewise the overhead is too h
 
 **Pros**: Better for short jobs and fair
 
-**Cons**: Context-switching time adds up for long jobs
+**Cons**: Context-switching time adds up for long jobs. Poor performance for I/O-bound processes.
+
+**A Refinement**: Virtual Round Robin. Processes are moved into this queue after being released from an I/O block. When a dispatching decision is to be made, processes in auxiliary queue get preference over those in the main Ready queue.
 
 ### Shortest Remaining Time First
 
@@ -57,17 +61,25 @@ Due to the unpredictable nature of SRTF, it is more suitable for long-term sched
 
 ### High Response Ratio First
 
+**Normalized turnaround time**: the ratio of turn around time to service time.
 $$
 R=\frac{\text{Waiting Time}+\text{Expected Service Time}}{\text{Expected Service Time}}
 $$
+
+**Pros**: balance short jobs and starving jobs at the same time. Not prone to starvation.
+
+**Cons**: have to predict the future.
 
 ### Multi-Level Feedback Scheduling
 
 <img src="https://p.ipic.vip/f7awx4.png" alt="Screenshot 2023-06-18 at 5.09.57 AM" style="zoom:50%;" />
 
-Job starts in highest priority queue. If timeout expires, drop one level and if timeout doesn't expire, push up one level.
+Job starts in highest priority queue.
 
-The result approximates SRTF. CPU bound jobs drop like a rock and short-running I/O bound job stay near top.
+* If timeout expires, drop one level,
+* If timeout doesn't expire, push up one level.
+
+The result **approximates SRTF**. CPU bound jobs drop like a rock and short-running I/O bound job stay near top.
 
 Scheduling must be done between the queues:
 
@@ -78,6 +90,12 @@ Scheduling must be done between the queues:
   Each queue gets a certain amount of CPU time. It may be like 70% to highest, 20% next and 10% lowest.
 
 ## Priority-Based Approaches
+
+To prevent high-priority processes from running indefinitely, the scheduler may **decrease the priority** of the currently running process at each clock interrupt.
+
+**Highly I/O bound processes** (interactive processes) should be given higher priorities.
+
+A **preemptive priority scheduling** algorithm will preempt the CPU if the priority of the newly arrived process is higher than the priority of the currently running process
 
 ### Strict Priority Scheduling
 
@@ -130,8 +148,6 @@ The "interactive tasks" get special dispensation. They are simply placed back in
 Starvation is not deadlock but deadlock is starvation. 
 
 A **work-conserving** scheduler is one that does not leave the CPU idle when there is work to do. A non-work-conserving scheduler could trivially lead to starvation.
-
-Stack (LIFO) as a scheduling data structure. It's extremely unfair for possible starvation.
 
 The starvation could happen when arrival rate (offered load) exceeds service rate (delivered load). Queue builds up faster than it drains.
 
