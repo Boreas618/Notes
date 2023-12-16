@@ -79,25 +79,13 @@ The disk is accessed as linear array of sectors
 
 How to identify a sector?
 
-* Physical position
+* **Physical position**：A Sector is identified by a vector `[cylinder, surface, sector]`. It is not used anymore & OS/BIOS must deal with bad sectors.
 
-  Sectors is a vector `[cylinder, surface, sector]`
-
-  Not used anymore
-
-  OS/BIOS must deal with bad sectors
-
-* Logical Block Addressing (LBA)
-
-  Every sector has integer address 
-
-  Controller translates from address $\Rightarrow$ physical position
-
-  Shields OS from structure of disk
+* **Logical Block Addressing**: Every sector has integer address. Controller translates from address $\Rightarrow$ physical position.
 
 ## Components of a File System
 
-![Screenshot 2023-07-05 at 11.24.15 PM](https://p.ipic.vip/ow5aqg.png)
+<img src="https://p.ipic.vip/ow5aqg.png" style="zoom:50%;" />
 
 Open file description is better described as remembering the inumber of the file, not its name.
 

@@ -4,13 +4,12 @@
 
 * I/O devices you recognize are supported by I/O Controllers
 
-* Processors accesses them by reading and writing IO registers as if they were memory
+* Processors accesses them by reading and writing IO registers as if they were memory. Write commands and arguments, read status and results
 
-  Write commands and arguments, read status and results
 
 ## Buses
 
-Buses let us connect n devices over a single set of wires, connections, and protocols. $O(n^2 )$ relationships with 1 set of wires. The downside is that there can be only one transaction at a time. The rest must wait. 
+Buses let us connect $n$ devices over a single set of wires, connections, and protocols. $O(n^2 )$ relations with 1 set of wires. The downside is that there can be only one transaction at a time. The rest must wait. 
 
 PCI started life out as a bus. But a parallel bus has many limitations
 
@@ -39,81 +38,62 @@ Processor accesses registers in two ways:
 
 ## Operational Parameters for I/O
 
-* Data granularity: Byte vs. Block
+* **Data granularity**: Byte vs. Block
 
-  Some devices provide single byte at a time (e.g., keyboard)
+  Some devices provide single byte at a time (e.g., keyboard). Others provide whole blocks (e.g., disks, networks, etc.)
 
-  Others provide whole blocks (e.g., disks, networks, etc.)
+* **Access pattern**: Sequential vs. Random
 
-* Access pattern: Sequential vs. Random
+  Some devices must be accessed sequentially (e.g., tape). Others can be accessed "randomly" (e.g., disk, cd, etc.) indicates a fixed overhead to start transfers. .Some devices require continual monitoring. Others generate interrupts when they need service.
 
-  Some devices must be accessed sequentially (e.g., tape)
+* **Transfer Mechanism**:
 
-  Others can be accessed “randomly” (e.g., disk, cd, etc.) indicates a fixed overhead to start transfers
+  **Programmed I/O**: Each byte transferred via processor in/out or load/store.
 
-  Some devices require continual monitoring
+  **Direct Memory Access**: Give controller access to memory bus. Ask it to transfer data blocks to/from memory directly.
 
-  Others generate interrupts when they need service
+  <img src="https://p.ipic.vip/vd53f3.png" alt="image-20230702195541288" style="zoom:50%;" />
 
-* Transfer Mechanism: Programmed IO and DMA
+* **I/O Device Notifying the OS**
 
-  **Programmed I/O**: Each byte transferred via processor in/out or load/store
+  **I/O Interrupt**: Device generates an interrupt whenever it needs service. Pro: handles unpredictable events well. Con: interrupts relatively high overhead.
 
-  **Direct Memory Access**: Give controller access to memory bus. Ask it to transfer data blocks to/from memory directly
-  
-  ![image-20230702195541288](https://p.ipic.vip/vd53f3.png)
+  **Polling**: OS periodically checks a device-specific status register and I/O device puts completion information in status register. Pro: low overhead. Con: may waste many cycles on polling if infrequent or unpredictable I/O operations.
 
-* I/O Device Notifying  the OS
+  **Actual devices combine both polling and interrupts**:
 
-  **I/O Interrupt**: Device generates an interrupt whenever it needs service
+  > **High-bandwidth network adapter**:
+  >
+  > * Interrupt for first incoming packet
+  >
+  > * Poll for following packets until hardware queues are empty
 
-  Pro: handles unpredictable events well
-
-  Con: interrupts relatively high overhead 
-
-  **Polling**: OS periodically checks a device-specific status register and I/O device puts completion information in status register
-
-  Pro: low overhead
-
-  Con: may waste many cycles on polling if infrequent or unpredictable I/O operations
-
-  **Actual devices combine both polling and interrupts**
-
-  For instance – High-bandwidth network adapter: 
-
-  * Interrupt for first incoming packet
-
-  * Poll for following packets until hardware queues are empty
+* **Cycle Stealing**: used to transfer data on the system bus. The instruction cycle is suspended so data can be transferred. The CPU pauses one bus cycle. No interrupts occur so we do not save the context.
 
 ## Device Drivers
 
-Device Driver: Device-specific code in the kernel that interacts directly with the device hardware
+**Device Driver**: Device-specific code in the kernel that interacts directly with the device hardware
 
 * Supports a standard, internal interface
-
 * Same kernel I/O system can interact easily with different device drivers
-
 * Special device-specific configuration supported with the `ioctl()` system call
 
 Device Drivers typically divided into 2 pieces:
 
 * **Top half:** accessed in call path from system calls
 
-  Implements a set of standard, cross-device calls like `open()`, `close()`, `read()`, `write()`, `ioctl()`, `strategy()`
+  Implements a set of standard, cross-device calls like `open()`, `close()`, `read()`, `write()`, `ioctl()`, `strategy()`. This is the kernel’s interface to the device driver. Top half will start I/O to device, may put thread to sleep until finished.
 
-  This is the kernel’s interface to the device driver
+* **Bottom half**: also refered to as interrupt handlers. Gets input or transfers next block of output. May wake sleeping threads if I/O now complete
 
-  Top half will *start* I/O to device, may put thread to sleep until finished
+<img src="https://p.ipic.vip/8ab7w7.png" alt="Screenshot 2023-07-02 at 8.10.09 PM" style="zoom:50%;" />
 
-* **Bottom half**: run as interrupt routine
+The goal of I/O subsystem is to provide uniform interfaces despite wide range of different devices. This is also referred to as device-independent software. The basic function of the device- independent software is:
 
-  Gets input or transfers next block of output
+- To perform the I/O functions that are common to all devices (such as buffering, error reporting, allocating and releasing dedicated devices, and providing a device-independent block size).
+- To provide a uniform interface to the user-level software.
 
-  May wake sleeping threads if I/O now complete
-
-![Screenshot 2023-07-02 at 8.10.09 PM](https://p.ipic.vip/8ab7w7.png)
-
-The goal of I/O subsystem is to provide uniform interfaces despite wide range of different devices.
+### Different Devices
 
 **Block Devices**: *e.g.* disk drives, tape drives, DVD-ROM
 
