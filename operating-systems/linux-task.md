@@ -1,4 +1,4 @@
-# Linux Task Model
+# Case Study: Linux Task Model
 
 In the Linux kernel, both threads and processes are encapsulated using the `task_struct` structure, making them both "tasks." Their distinction arises from the concept of thread groups.
 

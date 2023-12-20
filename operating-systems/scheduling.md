@@ -1,6 +1,6 @@
-# **Execution model**
+# Scheduling
 
-Programs alternate between bursts of CPU and I/O.
+**Execution model**: Programs alternate between bursts of CPU and I/O.
 
 > In the context of computing and operating systems, a "burst" typically refers to a period of continuous execution by a process or thread without giving up the CPU
 
@@ -8,9 +8,9 @@ Each scheduling decision is about which job to give to the CPU for use by its (t
 
 With timeslicing, thread may be forced to give up CPU before finishing current CPU burst (execution time).
 
-# Scheduling Policy
+## Scheduling Policy
 
-There are four types of scheduling:
+There are three types of scheduling:
 
 - **Long-term scheduling**: Determines whether a job can enter the operating system and controls the degree of multiprogramming.
 - **Medium-term scheduling**: Swaps processes between suspended and active states to regulate resource utilization.
@@ -22,7 +22,7 @@ There are four types of scheduling:
 
 ### FCFS
 
-Favor CPU-bound processes over I/O-bound processes..
+**Non-preemptive**: favor CPU-bound processes over I/O-bound processes. favor long jobs over short jobs.
 
 **Convoy effect**: short process stuck behind long process.
 
@@ -40,24 +40,19 @@ $q$ must be large with respect to context switch, othewise the overhead is too h
 
 **A Refinement**: Virtual Round Robin. Processes are moved into this queue after being released from an I/O block. When a dispatching decision is to be made, processes in auxiliary queue get preference over those in the main Ready queue.
 
-### Shortest Remaining Time First
+### Shortest Job First
 
-If all jobs are of the same length, SRTF is the same as FCFS.
+If all jobs are of the same length, SJF is the same as FCFS.
 
-Suppose there are three jobs:
+**Pros**: **Optimal** in terms of average response time and average turnaround time.
 
-* A, B: both CPU bound, run for week
-* C: I/O bound, loop 1ms CPU, 9ms disk I/O
+**Cons**: Hard to predict future and unfair. Favor short jobs over long jobs. No notion of "priority": a long task may be more urgent than a short task.
 
-<img src="https://p.ipic.vip/5d8waz.png" alt="Screenshot 2023-06-17 at 8.21.57 PM" style="zoom:50%;" />
+Due to the unpredictable nature of SJF, it is more suitable for long-term scheduling, where the job time is more predictable.
 
-<img src="https://p.ipic.vip/xi2ywz.png" alt="Screenshot 2023-06-17 at 8.26.00 PM" style="zoom:25%;" />
+SJF can be preemptive and non-preemptive at the same time. The preemptive version is called **S**hortest **R**emaining **J**ob **F**irst.
 
-**Pros**: **Optimal** in terms of average response time
-
-**Cons**: Hard to predict future and unfair
-
-Due to the unpredictable nature of SRTF, it is more suitable for long-term scheduling, where the job time is more predictable.
+<img src="https://p.ipic.vip/c0p3l5.png" alt="Screenshot 2023-12-17 at 6.01.43 AM" style="zoom: 25%;" />
 
 ### High Response Ratio First
 
@@ -66,7 +61,7 @@ $$
 R=\frac{\text{Waiting Time}+\text{Expected Service Time}}{\text{Expected Service Time}}
 $$
 
-**Pros**: balance short jobs and starving jobs at the same time. Not prone to starvation.
+**Pros**: balance short jobs and starving jobs at the same time. **Not prone to starvation.**
 
 **Cons**: have to predict the future.
 
@@ -83,19 +78,17 @@ The result **approximates SRTF**. CPU bound jobs drop like a rock and short-runn
 
 Scheduling must be done between the queues:
 
-* Fixed priority scheduling
+* **Fixed priority scheduling**
 
-* Time slice
-
-  Each queue gets a certain amount of CPU time. It may be like 70% to highest, 20% next and 10% lowest.
+* **Time slice**: Each queue gets a certain amount of CPU time. It may be like 70% to highest, 20% next and 10% lowest.
 
 ## Priority-Based Approaches
 
-To prevent high-priority processes from running indefinitely, the scheduler may **decrease the priority** of the currently running process at each clock interrupt.
+* To prevent high-priority processes from running indefinitely, the scheduler may **decrease the priority** of the currently running process at each clock interrupt.
 
-**Highly I/O bound processes** (interactive processes) should be given higher priorities.
+* **Highly I/O bound processes** (interactive processes) should be given higher priorities.
 
-A **preemptive priority scheduling** algorithm will preempt the CPU if the priority of the newly arrived process is higher than the priority of the currently running process
+* A **preemptive priority scheduling** algorithm will preempt the CPU if the priority of the newly arrived process is higher than the priority of the currently running process
 
 ### Strict Priority Scheduling
 
@@ -115,33 +108,7 @@ A **preemptive priority scheduling** algorithm will preempt the CPU if the prior
   >
   > The solution is the high priority job temporarily grants the low priority job its "high priority" to run on its behalf.
 
-* Solution: **Dynamic priorities** We adjust base-level priority up or down based on heuristics about interactivity, locking, burst behavior, etc...
-
-### Case Study: Linux O(1) Scheduler
-
-<img src="https://p.ipic.vip/prt58w.png" alt="Screenshot 2023-06-18 at 5.17.55 AM" style="zoom:50%;" />
-
-**Priority Queues and Time Slices**： In the Linux O(1) scheduler, tasks are organized based on their priority, which is categorized into 140 distinct levels:
-
-- **User Tasks**: These are tasks that are initiated by users, allocated 40 out of the 140 priorities.
-- **Realtime/Kernel Tasks**: These are tasks that are either kernel-centric or require real-time processing. They're assigned the remaining 100 priorities.
-
-The scheduler employs two distinct priority queues:
-
-1. **Active Queue**: This is where tasks are initially placed and are allowed to use up their allocated timeslices.
-2. **Expired Queue**: Once tasks exhaust their timeslices in the active queue, they are moved to the expired queue.
-
-After all tasks in the active queue have consumed their timeslices, the roles of the active and expired queues are swapped, allowing for a continuous execution of tasks without delay.
-
-The duration of a task's timeslice is directly proportional to its priority. That is, higher-priority tasks are allotted longer timeslices. The scheduler maps these priorities linearly onto a predefined timeslice range.
-
-**Heuristic-based Priority Adjustments**: A unique aspect of the Linux O(1) scheduler is its ability to adapt to different types of tasks. It employs a variety of heuristics to fine-tune task priorities. The primary goal of these heuristics is to ensure I/O-bound tasks and tasks that have been starved of CPU time receive priority boosts.
-
-The user-task priority adjusted $\pm$ 5 based on heuristics. The sleep time is calculated based on `p->sleep_avg = sleep_time - run_time`. The higher the `sleep_avg`, the more I/O bound the task and the more reward we get.
-
-The **interactive credit** is earned when a task sleeps for a long time and spend when a task runs for a long time. Interactive credit is used to provide hysteresis to avoid changing interactivity for temporary changes in behavior.
-
-The "interactive tasks" get special dispensation. They are simply placed back into active queue unless some other task has been starved for too long.
+* Solution: **Dynamic priorities** We adjust base-level priority up or down based on heuristics about interactivity, locking, burst behavior, etc.
 
 ### Starvation
 
@@ -149,9 +116,9 @@ Starvation is not deadlock but deadlock is starvation.
 
 A **work-conserving** scheduler is one that does not leave the CPU idle when there is work to do. A non-work-conserving scheduler could trivially lead to starvation.
 
-The starvation could happen when arrival rate (offered load) exceeds service rate (delivered load). Queue builds up faster than it drains.
+The starvation could happen when arrival rate (offered load) exceeds service rate (delivered load). Queue builds up faster than it drains. Thus, FCFS, priority scheduling, SRTF and MLFS are also prone to starvation.
 
-FCFS, priority scheduling, SRTF and MLFS are also prone to starvation.
+<img src="https://p.ipic.vip/gr3d12.png" alt="Screenshot 2023-12-17 at 6.57.38 AM" style="zoom: 33%;" />
 
 ## Proportional-Share Scheduling
 
@@ -176,108 +143,15 @@ The stride of each job is $\frac{big\#W}{N_i}$. The total number of tickets acro
 
 The difference between lottery scheduling and stride scheduling is that the latter ensures predictability.
 
-> Assumptions encoded into many schedulers:
->
-> Apps that compute a lot should get lower priority, since they won't notice intermittent bursts from interactive apps.
->
-> Apps that sleep a lot and have short bursts must be interactive apps - they should get high priority.
-
-### Case Study: Linux Completely Fair Scheduler
-
-**Goal**: Each process gets a equal share of CPU
-
-In general, can’t do this with real hardware. OS needs to give out full CPU in time slices. Thus, we must use something to keep the threads roughly in sync with one another.
-
-**Basic idea**: is that we track CPU per thread and schedule threads to match up average rate of execution.
-
-**Scheduling Decision**: repair illusion of complete fairness and choose thread with minimum CPU time. It is related to Fair Queueing.
-
-We use a heap-like scheduling queue for this. $O(\log N)$ to add/remove threads where $N$ is the number of threads.
-
-Since short jobs tend to be chosen to run, we automatically get the interactivity.
-
-**Constraint 1**: Target Latency. It is the period of time over whcih every process gets service. The quanta is $\frac{Target Latecncy}{n}$. This ensures low resposnse time ad starvation freedom.
-
-**Constraint 2**: Throughput. It is the minimum length of any time slice.
-
-> Priority in Unix - Being Nice
->
-> `nice` values range from -20 to 19
->
-> * Negative values are “not nice”
->
-> * If you wanted to let your friends get more time, you would nice up your job
->
-> Scheduler puts higher nice-value tasks (lower priority) to sleep more …
->
-> * In $O(1)$ scheduler, this translated fairly directly to priority (and time slice)
-
-Introduce priority: we assign a weight $w_i$ to each process and compute the switching quanta $Q_i$.
-
-We reuse `nice` value to reflect share. CFS uses nice values to scale weights exponentially: $W=\frac{1024}{{1.25}^{nice}}$. The denominator can be an arbitary number. For example, for two CPU tasks separated by nice value of 5, task with lower nice value has 3 times the weight, since $1.25^{3}\approx3$.
-
-![Screenshot 2023-06-23 at 12.46.26 AM](https://p.ipic.vip/iavdkg.png)
-
-We track a thread's virtual runtime rather than its true physical runtime.
-
-* Higher weight: virtual runtime increases more slowly, so we can get more physical runtime.
-* Lower weight: virtual runtime increases more quickly, so we can get less physical runtime.
-
-So the virtual time of the two threads grows at the same weight.
-
-We use red-black tree to hold all runable processes as sorted on `vruntime` variable.
-
-* $O(1)$ time to find next thread to run.
-* $O(\log N)$ time to perform insertions/deletions
-* When we ready to reschedule, we grab the version with the samllest `vruntime` (which will be the item at the far left)
-
-# Special Scheduling Scenarios
-
 ## Multi-Core Scheduling
 
-**Affinity scheduling**: once a thread is scheduled on a CPU, OS tries to reschedule it on the same CPU. That is for cache reuse.
+Two categories: **single-queue scheduling** strategies and **multi-queue scheduling** strategies.
 
-> Spinlocks for multiprocessing
->
-> Spinlocks doesn't put the calling thread to sleep, it just busy waits.
->
-> This might be preferable when we are waiting for a limited amount of threads at a barrier in a multiprocessing (multicore) program. It guarantees that we don't need to bother waking all the threads up when all the threads end their jobs.
->
-> ```python
-> import threading
-> import time
-> 
-> # Number of threads
-> N = 4
-> 
-> # Initialize the barrier object with the number of threads
-> barrier = threading.Barrier(N)
-> 
-> def worker():
->     # Simulate some work
->     time.sleep(0.1)
-> 
->     # Wait at the barrier
->     # When we enter the loop, we are acutally waiting at the barrier
->     while barrier.n_waiting < N:
->         pass
-> 
->     print(f'Thread {threading.current_thread().name} passed the barrier')
-> 
-> # Create and start N worker threads
-> for i in range(N):
->     threading.Thread(target=worker).start()
-> ```
->
-> Every test&set is a write, which will value ping-pong around between core-local caches.
+**Affinity scheduling**: Once a thread is scheduled on a CPU, OS tries to reschedule it on the same CPU. That is for cache reuse.
 
-When multiple threads work together on a multi-core system, try to schedule them together (spread the threads on different cores) .This makes the spin-waiting more efficient. Otherwise if we schedule the threads on a single core we have waste a lot of time on context switching.
+**Gang Scheduling**: When multiple threads work together on a multi-core system, try to schedule them together (spread the threads on different cores) .This makes the spin-waiting more efficient. Otherwise if we schedule the threads on a single core we have waste a lot of time on context switching.
 
-OS can inform a parallel program how many processors its threads are scheduled on and applications can adapt to number of cores that it has scheduled.
-
-**Challenges with too many short jobs**: Short jobs or processes typically require less CPU time to complete. However, if there are too many such jobs, they can overwhelm the system. Even though each job may take a short time, the cumulative effect may lead to longer response times. This is because every time a job starts, the operating system must perform some overhead operations, such as allocating resources, which can become significant with many short jobs.
-
-**Challenges with high load average**: Load average is a measure of the amount of computational work that a computer system performs. A load average of 100 is incredibly high, meaning the system is severely overloaded. In such a situation, any scheduling algorithm, including lottery scheduling, will struggle to make significant progress on any single task because it has so many tasks to handle.
+**Dedicated Scheduling**: A program is made up of multiple threads. Several processors are allocated them. Each thread is dedicated to one processor thoroughout its life cycle.
 
 ## Real-Time Scheduling
 
@@ -287,22 +161,26 @@ The goal to the predictability of performance.
 
 **Soft real-time**: for multi-media.
 
+Tasks in real time systems can be categorized as:
+
+* **Periodic Task**
+* **Non-periodic Task**
+
 ### Earliest Deadline First
 
-Tasks periodic with period P (arrive every P frames) and computation C in each period for each task i. We adopt a preemptive priority-based dynamic scheduling. Each task is assigned a priority based on how close the absolute deadline is (i.e. $D_i^{t+1}=D_{i}^{t}+P_{i}$ for each task) The scheduler always schedules the active task with the closest absolute deadline.
+Periodic Tasks with period $P$ (arrive every $P$ frames) and computation $C$ in each period for each task $i$. We adopt a preemptive priority-based dynamic scheduling. Each task is assigned a priority based on how close the absolute deadline is (i.e. $D_i^{t+1}=D_{i}^{t}+P_{i}$ for task $i$) The scheduler always schedules the active task with the closest absolute deadline.
 
-![Screenshot 2023-06-22 at 12.05.07 PM](https://p.ipic.vip/js984z.png)
+<img src="https://p.ipic.vip/js984z.png" alt="Screenshot 2023-06-22 at 12.05.07 PM" style="zoom:50%;" />
 
 EDF won't work if you have too many tasks. For $n$ tasks with computation time $C$ and deadline $D$, a feasible schedule exists if:
 $$
 \sum_{i=1}^{n} \frac{C_i}{D_i} \leq 1
 $$
 
-### Last-come, First-Served
+### Rate-Monotonic Scheduling
 
-Use stack (LIFO) as a scheduling data structure. Late arrivals get fast service and early ones just wait – extremely unfair.
+The frequency of a periodic real-time task with a cycle is $p$ . Therefore, the priority of a group of periodic real-time tasks can be calculated based on the frequency of that task.
 
-When would starvation occur ? When arrival rate (offered load) exceeds service rate (delivered load) and the queue builds up faster than it drains.
+<img src="https://p.ipic.vip/d1tyjy.png" alt="Screenshot 2023-12-17 at 6.53.58 AM" style="zoom: 33%;" />
 
-Queue can build in FIFO too, but “serviced in the order received”…
-
+Rate monotonic scheduling optimally schedules processes based on static priority. If a group of processes can't be scheduled using this method, they won't meet hard real-time requirements with any other scheduling strategies.

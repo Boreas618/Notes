@@ -1,4 +1,4 @@
-# Linux Scheduling
+# Case Study: Linux Scheduling
 
 ## Priority and Weight
 
@@ -53,13 +53,39 @@ Some modifications to tackle edge cases:
 
 Tuning the scheduler can lead to performance improvements for specific workloads. Linux provides various tools and interfaces, such as `sysctl` and `/proc` filesystem, to adjust scheduler parameters. Additionally, tools like `chrt` can be used to change real-time attributes of processes.
 
-# Linux CFS
+## Linux O(1) Scheduler
+
+<img src="https://p.ipic.vip/prt58w.png" alt="Screenshot 2023-06-18 at 5.17.55 AM" style="zoom:50%;" />
+
+**Priority Queues and Time Slices**： In the Linux O(1) scheduler, tasks are organized based on their priority, which is categorized into 140 distinct levels:
+
+- **User Tasks**: These are tasks that are initiated by users, allocated 40 out of the 140 priorities.
+- **Realtime/Kernel Tasks**: These are tasks that are either kernel-centric or require real-time processing. They're assigned the remaining 100 priorities.
+
+The scheduler employs two distinct priority queues:
+
+1. **Active Queue**: This is where tasks are initially placed and are allowed to use up their allocated timeslices.
+2. **Expired Queue**: Once tasks exhaust their timeslices in the active queue, they are moved to the expired queue.
+
+After all tasks in the active queue have consumed their timeslices, the roles of the active and expired queues are swapped, allowing for a continuous execution of tasks without delay.
+
+The duration of a task's timeslice is directly proportional to its priority. That is, higher-priority tasks are allotted longer timeslices. The scheduler maps these priorities linearly onto a predefined timeslice range.
+
+**Heuristic-based Priority Adjustments**: A unique aspect of the Linux O(1) scheduler is its ability to adapt to different types of tasks. It employs a variety of heuristics to fine-tune task priorities. The primary goal of these heuristics is to ensure I/O-bound tasks and tasks that have been starved of CPU time receive priority boosts.
+
+The user-task priority adjusted $\pm$ 5 based on heuristics. The sleep time is calculated based on `p->sleep_avg = sleep_time - run_time`. The higher the `sleep_avg`, the more I/O bound the task and the more reward we get.
+
+The **interactive credit** is earned when a task sleeps for a long time and spend when a task runs for a long time. Interactive credit is used to provide hysteresis to avoid changing interactivity for temporary changes in behavior.
+
+The "interactive tasks" get special dispensation. They are simply placed back into active queue unless some other task has been starved for too long.
+
+## Linux CFS
 
 The **Completely Fair Scheduler (CFS)** is the default process scheduler in the Linux kernel. Its main objective is to ensure fair access to the CPU for all tasks, providing a good mix of interactive and throughput performance.
 
 The CFS scheduler uses a red-black tree to track runnable tasks, ensuring a logarithmic time complexity for insertion and deletion operations. The scheduler's decisions are based on a task's `vruntime`, which reflects how much time a task has been running relative to others.
 
-## `sched_entity`
+### `sched_entity`
 
 Every task in the CFS scheduler is represented by a `sched_entity` structure.
 
@@ -78,7 +104,7 @@ Every task in the CFS scheduler is represented by a `sched_entity` structure.
 | `cfs_bands`             | `int`                   | Control group's task band.                                   |
 | ...                     | ...                     | ...                                                          |
 
-## `load_weight`
+### `load_weight`
 
 ```c
 struct load_weight {
@@ -91,7 +117,7 @@ The concept of weight is central to CFS, allowing it to ensure that tasks get CP
 
 The weight is determined from the task's priority (nice value). The default weight for a normal-priority (nice 0) task is `NICE_0_LOAD` (which is defined as 1024). We often use `p->se.load` to get the weight of a process `p`.
 
-## `nice` to priority
+### `nice` to priority
 
 In Linux, tasks have a "nice" value, ranging from -20 (highest priority) to 19 (lowest priority). The default is 0.
 
@@ -103,13 +129,13 @@ static_prio = MAX_RT_PRIO + NICE_TO_PRIO(nice)
 
 Where `MAX_RT_PRIO` is 100 and `NICE_TO_PRIO(nice)` translates the nice value into a priority offset.
 
-## priority to weight
+### priority to weight
 
 The priority of a task is then translated into a weight, which helps the scheduler determine the share of CPU time it should get. There is a predefined array `prio_to_weight` that provides a weight for each priority value.
 
 For instance, a task with nice value 0 (which translates to a static priority of 120) has a default weight of 1024 (`NICE_0_LOAD`).
 
-## priority to wmult
+### priority to wmult
 
 `wmult` is a multiplier used in calculations to speed up division operations (by replacing them with shift operations). Like `prio_to_weight`, there's a predefined array `prio_to_wmult` that provides this multiplier for each priority.
 
@@ -119,7 +145,7 @@ When CFS computes the amount of time a task should run, it uses the task's weigh
 
 The kernel provides a function to query `prio_to_weight` and `prio_to_wmult`  and store the values in `p->se.load` (which is of type `load_weight`)
 
-## vruntime
+### vruntime
 
 $$
 vruntime = \frac{delta\_exec \times nice\_0\_weight}{weight}
@@ -132,7 +158,7 @@ $$
 vruntime = (\frac{delta\_exec \times  nice\_0\_weight \times \bold{2^{32}}}{\bold{weight}}) >> 32
 $$
 
-## `rq`
+### `rq`
 
 | Member Name    | Type                    | Description                                                |
 | -------------- | ----------------------- | ---------------------------------------------------------- |
@@ -151,7 +177,7 @@ $$
 
 We can get the run queue of the current cpu through `this_rq(cpu)`.
 
-## `cfs_rq`
+### `cfs_rq`
 
 | Member          | Type                    | Description                               |
 | --------------- | ----------------------- | ----------------------------------------- |

@@ -1,4 +1,4 @@
-# Mutual Exclusion
+# Synchronization and Mutual Exclusion
 
 **Atomic Operations**: Either complete or not.
 
@@ -10,11 +10,11 @@
 
 **Race Condition**: Two threads attempting to **access same data** simultaneously with one of them performing a write.
 
-# Process-level Approaches
+## Process-level Approaches
 
 The two algorithms that will be introduced in this sections do not rely on programming language and operating system supports. 
 
-## Dekker's Algorithm
+### Dekker's Algorithm
 
 1. Process 0 checks the intention of the other process 1.
 
@@ -46,7 +46,7 @@ void *p0(void *arg) {
 }
 ```
 
-## Peterson's Algorithm
+### Peterson's Algorithm
 
 ```c
 boolean flag[2] = {false, false};
@@ -65,7 +65,7 @@ void *p0(void *arg) {
 }
 ```
 
-# Hardware-level Approaches
+## Hardware-level Approaches
 
 Two commly implemented instructions:
 
@@ -102,7 +102,7 @@ spin_lock:
     JNZ spin_lock              ; If it was not 0, the lock was held, so we loop and try again
 ```
 
-# Semaphore
+## Semaphore
 
 Semaphore is a variable that has an integer value, with three operations defined upon it:
 
@@ -122,7 +122,7 @@ Semaphore is a variable that has an integer value, with three operations defined
 * `val >= 0` number of processes that can execute waits without blocking
 * `val < 0` the magnitude of `val` is the number of processes blocked in the queue
 
-## Producer/Consumer Problem
+### Producer/Consumer Problem
 
 Producer/consumer problem with finite buffer can be solved by two semaphores.
 
@@ -158,34 +158,34 @@ void *consumer(void *arg) {
 }
 ```
 
-> **Solve by [Condition Variables](https://boreas618.github.io/posts/monitor.html)**
+> **Solving by [Condition Variables](https://boreas618.github.io/posts/monitor.html)**
 >
 > ```c
 > pthread_cond_t empty = PTHREAD_COND_INITIALIZER;
 > pthread_cond_t fill = PTHREAD_COND_INITIALIZER;
-> pthread_mutex_t mute = PTHREAD_MUTEX_INITIALIZER;
+> pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 > 
 > void *producer(void *arg) {
->   for (int i = 0; i < loops; i++) {
->   	pthread_mutex_lock(&mutex);
->     while (count == MAX)
->       pthread_cond_wait(&empty, &mutex);
->     put(i);
->     pthread_cond_signal(&fill);
->     pthread_mutex_unblock(&mutex);
->   }
+>   	while (TRUE) {
+>   		pthread_mutex_lock(&mutex);
+>     		while (count == MAX)
+>       		pthread_cond_wait(&empty, &mutex);
+>     		put(i);
+>     		pthread_cond_signal(&fill);
+>     		pthread_mutex_unblock(&mutex);
+>   	}
 > }
 > 
 > void *consumer(void *arg) {
->   for (int i = 0; i < loops; i++) {
->     pthread_mutex_lock(&mutex);
->     while (count == 0)
->       pthread_cond_wait(&fill, &mutex);
->     int tmp = get(i);
->     pthread_cond_signal(&empty);
->     pthread_mutex_unblock(&mutex);
->     print("%d\n", tmp);
->   }
+>   	while (TRUE) {
+>        pthread_mutex_lock(&mutex);
+>        while (count == 0)
+>          pthread_cond_wait(&fill, &mutex);
+>        int tmp = get(i);
+>        pthread_cond_signal(&empty);
+>        pthread_mutex_unblock(&mutex);
+>        print("%d\n", tmp);
+>     }
 > }
 > ```
 >
@@ -199,7 +199,7 @@ void *consumer(void *arg) {
 > >    * The `signal` function only wakes up a thread, putting it in the ready queue. However, it is highly possible that the world has changed between the thread waking up and being executed. Using `while` allows for the ability to double-check the condition.
 > >    * Spurious wakeups.
 
-## Barber Shop Problem
+### Barber Shop Problem
 
 - A customer will not enter the shop if it is filled to the capacity with other customers.
 - Once inside, the customer takes a seat on the sofa or stands if the sofa is filled.
@@ -208,13 +208,14 @@ void *consumer(void *arg) {
 
 <img src="https://p.ipic.vip/91ugbs.png" alt="Screenshot 2023-10-28 at 5.07.15 PM" style="zoom:50%;" />
 
-## Readers/Writers Problem
+### Readers/Writers Problem
 
 ```c
-sem_t x, wsem;
+sem_t x；
+sem_t wsem;
 
 void *reader(void *arg) {
-    while (true) {
+    while (TRUE) {
         sem_wait(&x);
         readcount++;
         if (readcount == 1)
@@ -231,7 +232,7 @@ void *reader(void *arg) {
 }
 
 void *writer(void *arg) {
-    while (true) {
+    while (TRUE) {
         sem_wait(&wsem); 
         // Write     
         sem_post(&wsem);
@@ -240,7 +241,7 @@ void *writer(void *arg) {
 }
 ```
 
-## Implementation of Semaphores
+### Implementation of Semaphores
 
 1. Disabling Interrupts
 
@@ -250,7 +251,7 @@ void *writer(void *arg) {
 
    The semaphore now includes a new integer component `s.flag` which controls access to the semaphore.
 
-# Locks
+## Locks
 
 Lock prevents someone from doing something. Threads should wait if a region is locked and should sleep if waiting for a long time.
 
@@ -260,7 +261,7 @@ Lock prevents someone from doing something. Threads should wait if a region is l
 2. **Ownership:** A lock must be released by the thread that acquired it, while a semaphore can be posted by any thread.
 3. **Use cases:** Locks are typically used when a piece of code or resource should only be accessed by one thread at a time (critical section). Semaphores are used when a number of identical resources are available, or to control access to a pool of resources.
 
-## Implementation of locks
+### Implementation of locks
 
 **Hardware** is responsible for implementing this correctly. It is effective on both uniprocessors and multiprocessors.
 
@@ -306,101 +307,3 @@ release(int *thelock) {
 * We wait until the lock might be free (only reading (compared with the above implementation that everytime a test&set is called, the cache has to be refreshed), the lock variable stays in cache)
 * We try to grab the lock with test&set
 * We repeat if we fail to actually get the lock
-
-## **Linux Futex: Fast Userspace Mutex**
-
-> ```c
->#include <linux/futex.h>
-> #include <sys/time.h>
-> 
-> int futex(int *uaddr, int futex_op, int val, const struct timespec *timeout);
-> ```
-> 
-> `uaddr` points to a 32-bit value in user space 
->
-> `futex_op`
->
-> * `FUTEX_WAIT` – if `val == *uaddr` then sleep till FUTEX_WAKE
->   **Atomic** check that condition still holds after we disable interrupts (in kernel!)
-> * `FUTEX_WAKE` – wake up at most `val` waiting threads
-> * `FUTEX_FD`, `FUTEX_WAKE_OP`, `FUTEX_CMP_REQUEUE`: More interesting operations! 
-> * `timeout` - `ptr` to a *timespec* structure that specifies a timeout for the op
-> 
-
-Interface to the kernel `sleep()` functionality. Let the thread put themselves to sleep conditionally.
-
-### **T&S and Futex**
-
-```c
-acquire(int *thelock) {
-  while(__atomic_test_and_set(thelock, __ATOMIC_SEQ_CST)) {
-    futex(thelock, FUTEX_WAIT, 1);
-  }
-}
-
-release(int *thelock) {
-  thelock = 0;
-  futex(thelock, FUTEX_WAKE, 1);
-}
-```
-
-**`acquire(int *thelock)`** This function is used to acquire the lock. The argument is a pointer to the lock variable.
-
-- `futex(thelock, FUTEX_WAIT, 1)` is called when the lock is not available. This puts the calling thread to sleep until the lock becomes available. The `FUTEX_WAIT` operation suspends the thread if the current value of the futex word (i.e., the lock variable) is `1` (the third argument to `futex`).
-
-**`release(int *thelock)`** This function is used to release the lock. The argument is a pointer to the lock variable.
-
-- `futex(&thelock, FUTEX_WAKE, 1);` wakes up one of the threads waiting on the lock, if any. The `FUTEX_WAKE` operation wakes up a number of threads waiting on the futex word (i.e., the lock variable). The third argument to `futex` specifies the maximum number of threads to wake up, which in this case is `1`.
-
-There is no busy waiting here. The acquire procedure simply sleeps until being waken up by the release. But we still have to tap into the kernel to **release** the lock even if there is no one who is acquring the lock.
-
-So we provide a second implementation to be syscall-free in the uncontended case:
-
-```c
-void acquire(int *thelock, bool *maybe) {
-    while (__atomic_test_and_set(thelock, __ATOMIC_SEQ_CST)) {
-        // Sleep, since lock busy!
-        *maybe = true;
-        futex(thelock, FUTEX_WAIT, 1);
-        // Make sure other sleepers are not stuck
-        *maybe = true;
-    }
-}
-
-void release(int *thelock, bool *maybe) {
-    __atomic_clear(thelock, __ATOMIC_SEQ_CST);
-
-    if (*maybe) {
-        *maybe = false;
-        // Try to wake up someone
-        futex(thelock, FUTEX_WAKE, 1);
-    }
-}
-```
-
-A more elegant implementation:
-
-```c
-#include <stdint.h>
-#include <linux/futex.h>
-#include <unistd.h>
-
-void acquire(Lock *thelock) {
-    Lock expected = UNLOCKED;
-    
-    // If unlocked, grab lock!
-    if (__atomic_compare_exchange_n(thelock, &expected, LOCKED, 0, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST))
-        return;
-
-    // Keep trying to grab lock, sleep in futex
-    while (__atomic_exchange_n(thelock, CONTESTED, __ATOMIC_SEQ_CST) != UNLOCKED)
-        // Sleep unless someone releases here!
-        futex((int *)thelock, FUTEX_WAIT, CONTESTED, NULL, NULL, 0);
-}
-
-void release(Lock *thelock) {
-    // If someone is sleeping, 
-    if (__atomic_exchange_n(thelock, UNLOCKED, __ATOMIC_SEQ_CST) == CONTESTED)
-        futex((int *)thelock, FUTEX_WAKE, 1, NULL, NULL, 0);
-}
-```

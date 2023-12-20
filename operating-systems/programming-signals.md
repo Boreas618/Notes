@@ -4,6 +4,37 @@ A signal is a small message that notifies a process that an event of some type h
 
 Singals provide an mechanism for exposing the occurence of some hardware exceptions to user processes.
 
+| Signal    | Number | Description                                      |
+| --------- | ------ | ------------------------------------------------ |
+| SIGINT    | 2      | Interrupt signal                                 |
+| SIGQUIT   | 3      | Quit signal                                      |
+| SIGILL    | 4      | Illegal instruction signal                       |
+| SIGTRAP   | 5      | Trap signal                                      |
+| SIGABRT   | 6      | Abort signal                                     |
+| SIGBUS    | 7      | Bus error signal                                 |
+| SIGFPE    | 8      | Floating-point exception signal                  |
+| SIGKILL   | 9      | Kill signal                                      |
+| SIGSEGV   | 11     | Segmentation fault signal                        |
+| SIGPIPE   | 13     | Broken pipe signal                               |
+| SIGALRM   | 14     | Alarm clock signal                               |
+| SIGTERM   | 15     | Termination signal                               |
+| SIGSTKFLT | 16     | Stack fault on coprocessor (unused)              |
+| SIGCHLD   | 17     | Child process status change signal               |
+| SIGCONT   | 18     | Continue executing, if stopped                   |
+| SIGSTOP   | 19     | Stop executing (cannot be caught or ignored)     |
+| SIGTSTP   | 20     | Terminal stop signal                             |
+| SIGTTIN   | 21     | Background process attempting read from terminal |
+| SIGTTOU   | 22     | Background process attempting write to terminal  |
+| SIGURG    | 23     | Urgent condition on socket                       |
+| SIGXCPU   | 24     | CPU time limit exceeded                          |
+| SIGXFSZ   | 25     | File size limit exceeded                         |
+| SIGVTALRM | 26     | Virtual timer expired                            |
+| SIGPROF   | 27     | Profiling timer expired                          |
+| SIGWINCH  | 28     | Window size change signal                        |
+| SIGIO     | 29     | I/O now possible (asynchronous I/O)              |
+| SIGPWR    | 30     | Power failure restart                            |
+| SIGSYS    | 31     | Bad system call                                  |
+
 ## Singal Terminology
 
 The kernel sends a signal to a destination process by updating some state in the context of the destination process.
